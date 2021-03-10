@@ -31,7 +31,6 @@ library(ggplot2)
 
 ```{r opts chunk, include = F}
 knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
-
 knitr::opts_chunk$set(echo = TRUE)
 options(
   ggplot2.continuous.colour = "viridis",
@@ -39,8 +38,71 @@ options(
 )
 ```
 
+```{r data source, include = F}
+#https://www.kaggle.com/fedesoriano/stroke-prediction-dataset
+```
 
-# Section 1: Setup
+# Parameters for Report
 
-## Libraries and Options
+Your report should have the following sections (you can add other sections if you want) and should be no more than 3 pages, excluding figures and tables. The total number of figures and tables should not exceed 6.
+
+EMIL CONSIDERING USING THE ENDFLOAT PACKAGE IN LATEX TO GET ALL THE FIGURES INTO THE APPENDIX
+https://tex.stackexchange.com/questions/164140/how-to-tell-latex-to-place-all-figures-at-the-end-of-pdf-file
+
+# Section 1: Introduction
+
+## Describe your data set. Provide proper motivation for your work.
+
+Load the dataset and describe the outcome and predictors. Provide summary statistics; examine its structure (and unit of analysis), as well as its cleanliness. Go into more detail about the outcome to provide motivation, and consider a citation.
+
+## What questions are you trying to answer?
+
+This is a public health example; trying to most effectively predict stroke (as a binary classification). Relevant predictors, diagnostic criteria. Thus, this is a classification question.
+
+## How did you prepare and clean the data?
+
+Should be clean. Mutate/tidy. Do the vis_miss function.
+
+Use the preprocessing lecture to prep a training and testing partition.
+
+# Section 2: Exploratory analysis/visualization
+
+## Is there any interesting structure present in the data?
+
+Do the plots; the one that creates pairwise scatter plots, and maybe the one from the knitted lecture 10 rmd. Comment on findings.
+
+## What were your findings?
+
+Describe the summary statistics and talk about the potential relevance; anything else?
+
+## Here you can use any techniques as long as they are adequately explained. If you cannot find anything interesting, then describe what you tried and show that there isn’t much visible structure. Data science is NOT manipulating the data in some way until you get an answer.
+ 
+# Section 3: Models (Biggest section!!)
+
+## What predictor variables did you include?
+
+All of them! Name them. ID is not a predictor.
+
+## What technique did you use? What assumptions, if any, are being made by using this technique?
+
+Logistic, Penalized logistic, GAM, MARS, LDA, QDA, naive bayes' available.
+
+Looks like logistic regression, linear discriminant analysis (useful when classes are well-separated), and maybe use QDA and maybe KNN. Decide.
+
+## If there were tuning parameters, how did you pick their values?
+
+CV; describe function(s) using the tuning parameter grid.
+
+## Discuss the training/test performance if you have a test data set.
+
+Make a box plot and discuss the winner in terms of mean RMSE or diagnostic criteria/ROC/AUC. 
+
+## Which variables play important roles in predicting the response?
+
+## What are the limitations of the models you used (if there are any)? Are the models flexible enough to capture the underlying truth?
+Discuss limitations of selevted models via ther lecture notes.
+
+# Section 4: Conclusions
+
+## What were your findings? Are they what you expect? What insights into the data can you make?
 
