@@ -38,10 +38,6 @@ options(
 )
 ```
 
-```{r data source, include = F}
-#https://www.kaggle.com/fedesoriano/stroke-prediction-dataset
-```
-
 # Parameters for Report
 
 Your report should have the following sections (you can add other sections if you want) and should be no more than 3 pages, excluding figures and tables. The total number of figures and tables should not exceed 6.
@@ -55,21 +51,99 @@ https://tex.stackexchange.com/questions/164140/how-to-tell-latex-to-place-all-fi
 
 Load the dataset and describe the outcome and predictors. Provide summary statistics; examine its structure (and unit of analysis), as well as its cleanliness. Go into more detail about the outcome to provide motivation, and consider a citation.
 
+This dataset contains 5110 observations, with de-identified individual patients as the unit of analysis. Each patient is characterized by their id, and a set of numerical and factor variables detailing basic demographic and biomedical information, like their gender, age, marriage status, and glucose level. The outcome of interest is a binary indicator of stroke. 
+
+While limited information is provided by the data source, this dataset is thought to consider xxx or yyy type of stroke as stroke outcome.
+major burden of disease.
+preventative would be good.
+COMEBACKTOTHISCOMEBACKTOTHISCOMEBACKTOTHISCOMEBACKTOTHISCOMEBACKTOTHISCOMEBACKTOTHIS.CITE.
+
+```{r start, include = F, message = F}
+stroke_df = read_csv("./data/healthcare-dataset-stroke-data.csv", na = "N/A")
+
+stroke_df = 
+  stroke_df %>% 
+  mutate(
+    id = as.factor(id),
+    gender = as.factor(gender),
+    hypertension = as.factor(hypertension),
+    heart_disease = as.factor(heart_disease),
+    ever_married = as.factor(ever_married),
+    work_type = as.factor(work_type),
+    Residence_type = as.factor(Residence_type),
+    smoking_status = as.factor(smoking_status),
+    stroke = as.factor(stroke)
+  ) %>% 
+  rename(residence_type = Residence_type) %>% 
+  select(id, stroke, gender, age, everything())
+
+rnoaa::vis_miss(stroke_df)
+```
+
+```{r include = F}
+summary(stroke_df)
+dim(stroke_df[duplicated(stroke_df$id),])[1]
+```
+
+```{r training selection object, include = F}
+set.seed(1107)
+trRows <- createDataPartition(stroke_df$stroke,
+                              p = .75,
+                              list = F)
+```
 ## What questions are you trying to answer?
 
-This is a public health example; trying to most effectively predict stroke (as a binary classification). Relevant predictors, diagnostic criteria. Thus, this is a classification question.
+This is a public health example; trying to most effectively predict stroke (as a binary classification). Simple dataset. Relevant predictors, diagnostic criteria. Thus, this is a classification question.
+
+How to allocate resource and to promote special precautions is hard.
+decision support system.
+thus, evaluate the feasibility of several predictive methods and determine if sufficient accuracy is available from a simple dataset like this.
+ideally, also get insight into which factors may be most relevant.
+
 
 ## How did you prepare and clean the data?
 
-Should be clean. Mutate/tidy. Do the vis_miss function.
+The data required minimal steps in order to prepare and clean it. Essentially, after importing the data, variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. The caret package was used to create testing and training subsets. Straightforward mise en place. 
 
-Use the preprocessing lecture to prep a training and testing partition.
+ADD MATRICES CREATION FOR ANALYSIS AND PLOTS, STANDARDIZING FOR CARET.
+WILL I OMIT THE MISSING BMI?
+
 
 # Section 2: Exploratory analysis/visualization
 
 ## Is there any interesting structure present in the data?
 
 Do the plots; the one that creates pairwise scatter plots, and maybe the one from the knitted lecture 10 rmd. Comment on findings.
+
+RESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERERESUMEHERE
+```{r form matrix, include = F}
+#remove rows with missing bmi, assuming MAR
+stroke_df_no_na = na.omit(stroke_df)
+
+# matrix of predictors
+x = model.matrix(stroke ~ ., stroke_df_no_na)[,3:12]
+#vector of response
+y = stroke_df_no_na$stroke
+```
+
+Here, we create the matrix for visualiation, and plot the data against the outcome.
+```{r visualization, include = F}
+stroke_df_vis = 
+  stroke_df_no_na %>% 
+  select(id, stroke, age, avg_glucose_level, bmi, everything())
+
+# matrix of predictors
+x_vis = model.matrix(stroke ~ ., stroke_df_vis)[,3:5]
+#vector of response as-is, using 'y'
+
+
+featurePlot(x = x_vis, 
+            y = y,
+            labels = c("Predictor Value","Out of State Tuition"),
+            plot = "scatter", pch = ".",
+            auto.key = list(columns = 2))
+```
+
 
 ## What were your findings?
 
@@ -100,9 +174,14 @@ Make a box plot and discuss the winner in terms of mean RMSE or diagnostic crite
 ## Which variables play important roles in predicting the response?
 
 ## What are the limitations of the models you used (if there are any)? Are the models flexible enough to capture the underlying truth?
-Discuss limitations of selevted models via ther lecture notes.
+Discuss limitations of selected models via ther lecture notes.
 
 # Section 4: Conclusions
 
 ## What were your findings? Are they what you expect? What insights into the data can you make?
 
+
+#Section 666: OPEN QUESTIONS
+How to deal with this imbalanced data? COnsider adding to data cleaning steps.
+What is the influence of so many predictors here?
+WILL I OMIT THE MISSING BMI?
