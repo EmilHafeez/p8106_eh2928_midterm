@@ -21,16 +21,11 @@ header-includes:
 
 ```{r libraries, include = F}
 library(caret) 
-library(earth)
 library(klaR)
 library(ggplot2)
 library(patchwork)
-library(rpart)
-library(rpart.plot)
-library(party)
-library(partykit)
-library(plotmo)
 library(pROC)
+library(corrplot)
 library(tidyverse)
 ```
 
@@ -102,6 +97,14 @@ stroke_df_no_na =
   dplyr::select(stroke, age, avg_glucose_level, bmi, everything())
 ```
 
+```{r matrix inputs,include=F}
+# matrix of predictors
+x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
+#vector of response
+y = stroke_df_no_na$stroke
+```
+
+
 ```{r include = F}
 summary(stroke_df)
 ```
@@ -113,7 +116,6 @@ How to allocate resource and to promote special precautions is hard.
 decision support system.
 thus, evaluate the feasibility of several predictive methods and determine if sufficient accuracy is available from a simple dataset like this.
 ideally, also get insight into which factors may be most relevant.
-
 
 ## How did you prepare and clean the data?
 
@@ -179,9 +181,11 @@ p1 =
 p1
 
 (p2 + p3 + p4) / (p5 + p6 +p7) / (p1)
-
 ```
 
+```{r}
+corrplot(cor(x), method = "square", type = "upper")
+```
 ## What were your findings?
 
 Describe the summary statistics and talk about the potential relevance; anything else?
@@ -197,14 +201,6 @@ trRows <- createDataPartition(stroke_df_no_na$stroke,
                               list = F)
 ```
 
-```{r}
-# matrix of predictors
-x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
-#vector of response
-y = stroke_df_no_na$stroke
-```
-
-
 ```{r modeling 1, include = F}
 # Using caret
 set.seed(1107)
@@ -213,16 +209,26 @@ ctrl <- trainControl(method = "cv",
                      classProbs = TRUE)
 ```
 
-```{r modeling rf using ranger, include = F, cache = T}
-#from lecture 12
+```{r modeling approaches and graphs, include = F, cache = T}
+#ranger rf
 set.seed(1107)
 ctrl <- trainControl(method = "cv",
                      classProbs = TRUE, 
                      summaryFunction = twoClassSummary)
-
-rf.grid <- expand.grid(mtry = 1:8,
+#knn
+knn.fit <- train(x = stroke_df_no_na[,2:11],
+                   y = stroke_df_no_na$stroke,
+                   subset = trRows,
+                   method = "knn",
+                   preProcess = c("center","scale"),
+                   metric = "ROC",
+                   tuneGrid = data.frame(k = seq(1,200,by=10)),
+                   trControl = ctrl)
+#rf
+rf.grid <- expand.grid(mtry = 1:11,
                        splitrule = "gini",
-                       min.node.size = seq(from = 2, to = 10, by = 2))
+                       min.node.size = seq(from = 1, to = 100, by = 2))
+set.seed(1107)
 rf.fit <- train(stroke ~ . , 
                 stroke_df_no_na, 
                 subset = trRows,
@@ -230,13 +236,7 @@ rf.fit <- train(stroke ~ . ,
                 tuneGrid = rf.grid,
                 metric = "ROC",
                 trControl = ctrl)
-
-ggplot(rf.fit, highlight = TRUE)
-
-rf.pred <- predict(rf.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-```
-
-```{r modeling ctree, include=F, cache = T}
+#coninf tree
 set.seed(1107)
 ctree.fit <- train(stroke ~ . , 
                    stroke_df_no_na, 
@@ -245,21 +245,12 @@ ctree.fit <- train(stroke ~ . ,
                    tuneGrid = data.frame(mincriterion = 1-exp(seq(-2, -1, length = 50))),
                    metric = "ROC",
                    trControl = ctrl)
-ggplot(ctree.fit, highlight = TRUE)
-```
-
-```{r ctree plot, include=F, cache = T}
-plot(ctree.fit$finalModel)
-summary(resamples(list(rpart.fit, ctree.fit)))
-```
-
-```{r , include=F, cache = T, message = F}
+#gbm
 set.seed(1107)
 gbm.grid <- expand.grid(n.trees = c(2000,3000,4000),
                         interaction.depth = 1:4,
                         shrinkage = c(0.001,0.003,0.005),
                         n.minobsinnode = c(1,10))
-set.seed(1)
 gbm.fit <- train(stroke ~ . , 
                  stroke_df_no_na, 
                  subset = trRows,
@@ -267,17 +258,12 @@ gbm.fit <- train(stroke ~ . ,
                  tuneGrid = gbm.grid,
                  trControl = ctrl,
                  verbose = FALSE)
-
-ggplot(gbm.fit, highlight = TRUE)
-
-```
-
-```{r adaboost, include=F, cache = T, message = F}
+#gbm ada
 gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
                          interaction.depth = 1:6,
                          shrinkage = c(0.001,0.003,0.005),
                          n.minobsinnode = 1)
-set.seed(1)
+set.seed(1107)
 gbmA.fit <- train(stroke ~ . , 
                   stroke_df_no_na, 
                   subset = trRows, 
@@ -288,12 +274,12 @@ gbmA.fit <- train(stroke ~ . ,
                   metric = "ROC",
                   verbose = FALSE)
 
+ggplot(knn.fit, highlight = TRUE)
+ggplot(rf.fit, highlight = TRUE)
+ggplot(ctree.fit, highlight = TRUE)
+ggplot(gbm.fit, highlight = TRUE)
 ggplot(gbmA.fit, highlight = TRUE)
-
-gbmA.pred <- predict(gbmA.fit, newdata = dat[-rowTrain,], type = "prob")[,1]
 ```
-
-
 
 ## What predictor variables did you include?
 
@@ -301,11 +287,9 @@ All variables from the dataset are included in modeling other than the arbitrary
 
 ## What technique did you use? What assumptions, if any, are being made by using this technique?
 
-Logistic, Penalized logistic, GAM, MARS, LDA, QDA, naive bayes' available.
+This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, and gradient boosting (and adaboost). KNN is also used.
 
-Looks like logistic regression, linear discriminant analysis (useful when classes are well-separated), and maybe use QDA and maybe KNN. Decide.
-
-This application uses the random forest, conditional inference tree, and gradient boosting (and adaboost). 
+These methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors. Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF).
 
 ## If there were tuning parameters, how did you pick their values?
 
@@ -313,12 +297,14 @@ CV; describe function(s) using the tuning parameter grid.
 
 ## Discuss the training/test performance if you have a test data set.
 ```{r modeling 3 comparison, include = F}
-res <- resamples(list(GLM = model.glm,
-                      GLMNET = model.glmn,
-                      GAM = model.gam,
-                      MARS = model.mars,
-                      KNN = model.knn))
-
+res <- resamples(list(
+                      knn = knn.fit,
+                      rf = rf.fit,
+                      ctree = rf.fit,
+                      gbm = rf.fit,
+                      gbma = rf.fit
+                      )
+                 )
 summary(res)
 
 bwplot(res, metric = "ROC")
@@ -329,15 +315,10 @@ bwplot(res, metric = "ROC")
 Make a box plot and discuss the winner in terms of mean RMSE or diagnostic criteria/ROC/AUC. 
 ```{r modeling 4 test performance, include = FF}
 #from lecture 9
-glm.pred <- predict(model.glm, newdata = stroke_df_no_na[-trRows,], type = "prob")[,2]
-glmn.pred <- predict(model.glmn, newdata = dat[-trRows,], type = "prob")[,2]
-knn.pred <- predict(model.knn, newdata = dat[-trRows,], type = "prob")[,2]
-gam.pred <- predict(model.gam, newdata = dat[-trRows,], type = "prob")[,2]
-mars.pred <- predict(model.mars, newdata = dat[-trRows,], type = "prob")[,2]
-#from lecture 10
-lda.pred <- predict(model.lda, newdata = dat[-trRows,], type = "prob")[,2]
-nb.pred <- predict(model.nb, newdata = dat[-trRows,], type = "prob")[,2]
-qda.pred <- predict(model.qda, newdata = dat[-trRows,], type = "prob")[,2]
+rf.pred <- predict(rf.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+gbmA.pred <- predict(gbmA.fit, newdata = dat[-trRows,], type = "prob")[,1]
+rf.pred <- predict(rf.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+gbmA.pred <- predict(gbmA.fit, newdata = dat[-trRows,], type = "prob")[,1]
 #combined
 roc.glm <- roc(dat$diabetes[-trRows], glm.pred)
 roc.glmn <- roc(dat$diabetes[-trRows], glmn.pred)
@@ -404,21 +385,21 @@ summary(gbmA.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
 ```
 
 ## What are the limitations of the models you used (if there are any)? Are the models flexible enough to capture the underlying truth?
-Discuss limitations of selected models via ther lecture notes.
+
+Discuss limitations of selected models via their lecture notes.
 
 # Section 4: Conclusions
 
 ## What were your findings? Are they what you expect? What insights into the data can you make?
 
-
 #Section 666: OPEN QUESTIONS
-How to deal with this imbalanced data? COnsider adding to data cleaning steps.
+How to deal with this imbalanced data? Consider adding to data cleaning steps.
 What is the influence of so many predictors here?
 add viridis....
 WHICH OF THE EDA PLOTS TO KEEP IN THE REPORT?
-add the make.levels to the data cleaning steps
 add corrplot to eda
-gender data cleaning: factor the variable again
+what assumptions does the gradient boosting make
+
 
 what about:
 ```{r modeling 2, include = F}
@@ -452,3 +433,4 @@ model.nb <- train(x = stroke_df_no_na[trRows,2:11],
 
 plot(model.nb)
 ```
+Or, the SVM
