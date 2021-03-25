@@ -24,7 +24,6 @@ library(caret)
 library(earth)
 library(klaR)
 library(ggplot2)
-library(tidyverse)
 library(patchwork)
 library(rpart)
 library(rpart.plot)
@@ -32,6 +31,7 @@ library(party)
 library(partykit)
 library(plotmo)
 library(pROC)
+library(tidyverse)
 ```
 
 ```{r opts chunk, include = F}
@@ -87,7 +87,11 @@ stroke_df =
     hypertension = factor(hypertension, labels = make.names(levels(hypertension))),
     heart_disease = factor(heart_disease, labels = make.names(levels(heart_disease)))
   ) %>% 
-  dplyr::select(-id)
+  dplyr::select(-id) %>% 
+  filter(!gender %in% c("Other")) %>% 
+  mutate(
+    gender = factor(gender)
+  )
 
 rnoaa::vis_miss(stroke_df)
 
@@ -209,39 +213,7 @@ ctrl <- trainControl(method = "cv",
                      classProbs = TRUE)
 ```
 
-```{r modeling 2, include = F}
-#from lecture 10
-#qda
-model.qda <- train(x = stroke_df_no_na[trRows,2:11],
-                   y = stroke_df_no_na$stroke[trRows],
-                   method = "qda",
-                   metric = "ROC",
-                   trControl = ctrl)
-
-model.mars <- train(x = stroke_df_no_na[trRows,3:11],
-                    y = stroke_df_no_na$stroke[trRows],
-                    method = "earth",
-                    tuneGrid = expand.grid(degree = 1:3, 
-                                           nprune = 2:15),
-                    metric = "ROC",
-                    trControl = ctrl)
-
-#naive bayes
-nbGrid <- expand.grid(usekernel = c(FALSE,TRUE),
-                      fL = 1, 
-                      adjust = seq(.2, 3, by = .2))
-
-model.nb <- train(x = stroke_df_no_na[trRows,2:11],
-                   y = stroke_df_no_na$stroke[trRows],
-                  method = "nb",
-                  tuneGrid = nbGrid,
-                  metric = "ROC",
-                  trControl = ctrl)
-
-plot(model.nb)
-```
-
-```{r modeling, include=F, cache = T}
+```{r modeling rf using ranger, include = F, cache = T}
 #from lecture 12
 set.seed(1107)
 ctrl <- trainControl(method = "cv",
@@ -264,7 +236,7 @@ ggplot(rf.fit, highlight = TRUE)
 rf.pred <- predict(rf.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
 ```
 
-```{r}
+```{r modeling ctree, include=F, cache = T}
 set.seed(1107)
 ctree.fit <- train(stroke ~ . , 
                    stroke_df_no_na, 
@@ -276,13 +248,12 @@ ctree.fit <- train(stroke ~ . ,
 ggplot(ctree.fit, highlight = TRUE)
 ```
 
-```{r}
+```{r ctree plot, include=F, cache = T}
 plot(ctree.fit$finalModel)
 summary(resamples(list(rpart.fit, ctree.fit)))
 ```
 
-
-```{r}
+```{r , include=F, cache = T, message = F}
 set.seed(1107)
 gbm.grid <- expand.grid(n.trees = c(2000,3000,4000),
                         interaction.depth = 1:4,
@@ -298,22 +269,65 @@ gbm.fit <- train(stroke ~ . ,
                  verbose = FALSE)
 
 ggplot(gbm.fit, highlight = TRUE)
+
+```
+
+```{r adaboost, include=F, cache = T, message = F}
+gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
+                         interaction.depth = 1:6,
+                         shrinkage = c(0.001,0.003,0.005),
+                         n.minobsinnode = 1)
+set.seed(1)
+gbmA.fit <- train(stroke ~ . , 
+                  stroke_df_no_na, 
+                  subset = trRows, 
+                  tuneGrid = gbmA.grid,
+                  trControl = ctrl,
+                  method = "gbm",
+                  distribution = "adaboost",
+                  metric = "ROC",
+                  verbose = FALSE)
+
+ggplot(gbmA.fit, highlight = TRUE)
+
+gbmA.pred <- predict(gbmA.fit, newdata = dat[-rowTrain,], type = "prob")[,1]
 ```
 
 
+
+## What predictor variables did you include?
+
+All variables from the dataset are included in modeling other than the arbitrary numeric identifier. The dataset is not high dimensional, and no variable selection procedures prior to modeling were implemented. Rather than parsing the number of predictor variables, this analysis was primarily limited by the large quantity of categorical variables in the predictor set, since this limited the algorithms which could be applied to the training data.
+
+## What technique did you use? What assumptions, if any, are being made by using this technique?
+
+Logistic, Penalized logistic, GAM, MARS, LDA, QDA, naive bayes' available.
+
+Looks like logistic regression, linear discriminant analysis (useful when classes are well-separated), and maybe use QDA and maybe KNN. Decide.
+
+This application uses the random forest, conditional inference tree, and gradient boosting (and adaboost). 
+
+## If there were tuning parameters, how did you pick their values?
+
+CV; describe function(s) using the tuning parameter grid.
+
+## Discuss the training/test performance if you have a test data set.
 ```{r modeling 3 comparison, include = F}
 res <- resamples(list(GLM = model.glm,
-GLMNET = model.glmn,
-GAM = model.gam,
-MARS = model.mars,
-KNN = model.knn))
+                      GLMNET = model.glmn,
+                      GAM = model.gam,
+                      MARS = model.mars,
+                      KNN = model.knn))
 
 summary(res)
 
 bwplot(res, metric = "ROC")
 ```
 
-```{r modeling 4 test performance, include = F}
+
+
+Make a box plot and discuss the winner in terms of mean RMSE or diagnostic criteria/ROC/AUC. 
+```{r modeling 4 test performance, include = FF}
 #from lecture 9
 glm.pred <- predict(model.glm, newdata = stroke_df_no_na[-trRows,], type = "prob")[,2]
 glmn.pred <- predict(model.glmn, newdata = dat[-trRows,], type = "prob")[,2]
@@ -353,25 +367,41 @@ legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
        col = 1:3, lwd = 2)
 ```
 
-## What predictor variables did you include?
-
-All variables from the dataset are included in modeling other than the arbitrary numeric identifier. The dataset is not high dimensional, and no variable selection procedures prior to modeling were implemented. 
-
-## What technique did you use? What assumptions, if any, are being made by using this technique?
-
-Logistic, Penalized logistic, GAM, MARS, LDA, QDA, naive bayes' available.
-
-Looks like logistic regression, linear discriminant analysis (useful when classes are well-separated), and maybe use QDA and maybe KNN. Decide.
-
-## If there were tuning parameters, how did you pick their values?
-
-CV; describe function(s) using the tuning parameter grid.
-
-## Discuss the training/test performance if you have a test data set.
-
-Make a box plot and discuss the winner in terms of mean RMSE or diagnostic criteria/ROC/AUC. 
-
 ## Which variables play important roles in predicting the response?
+
+Compute this and edit it.
+```{r}
+## add variable importance 
+set.seed(1)
+rf2.final.per <- ranger(Salary ~ . , 
+                        Hitters[trRows,],
+                        mtry = rf.fit$bestTune[[1]], 
+                        splitrule = "variance",
+                        min.node.size = rf.fit$bestTune[[3]],
+                        importance = "permutation",
+                        scale.permutation.importance = TRUE) 
+
+barplot(sort(ranger::importance(rf2.final.per), decreasing = FALSE), 
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan","blue"))(19))
+
+set.seed(1)
+rf2.final.imp <- ranger(Salary ~ . , 
+                        Hitters[trRows,],
+                        mtry = rf.fit$bestTune[[1]], 
+                        splitrule = "variance",
+                        min.node.size = rf.fit$bestTune[[3]],
+                        importance = "impurity") 
+
+barplot(sort(ranger::importance(rf2.final.imp), decreasing = FALSE), 
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan","blue"))(19))
+
+#Variable importance from boosting can be obtained using the `summary()` function.
+summary(gbm.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
+
+summary(gbmA.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
+```
 
 ## What are the limitations of the models you used (if there are any)? Are the models flexible enough to capture the underlying truth?
 Discuss limitations of selected models via ther lecture notes.
@@ -388,3 +418,37 @@ add viridis....
 WHICH OF THE EDA PLOTS TO KEEP IN THE REPORT?
 add the make.levels to the data cleaning steps
 add corrplot to eda
+gender data cleaning: factor the variable again
+
+what about:
+```{r modeling 2, include = F}
+#from lecture 10
+#qda
+model.qda <- train(x = stroke_df_no_na[trRows,2:11],
+                   y = stroke_df_no_na$stroke[trRows],
+                   method = "qda",
+                   metric = "ROC",
+                   trControl = ctrl)
+
+model.mars <- train(x = stroke_df_no_na[trRows,3:11],
+                    y = stroke_df_no_na$stroke[trRows],
+                    method = "earth",
+                    tuneGrid = expand.grid(degree = 1:3, 
+                                           nprune = 2:15),
+                    metric = "ROC",
+                    trControl = ctrl)
+
+#naive bayes
+nbGrid <- expand.grid(usekernel = c(FALSE,TRUE),
+                      fL = 1, 
+                      adjust = seq(.2, 3, by = .2))
+
+model.nb <- train(x = stroke_df_no_na[trRows,2:11],
+                   y = stroke_df_no_na$stroke[trRows],
+                  method = "nb",
+                  tuneGrid = nbGrid,
+                  metric = "ROC",
+                  trControl = ctrl)
+
+plot(model.nb)
+```
