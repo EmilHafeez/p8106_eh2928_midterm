@@ -102,24 +102,21 @@ summary(stroke_df)
 ```
 ## What questions are you trying to answer?
 
-This is a public health example; the current study examines whether a moderately effectively prediction of stroke outcome (as a binary classification) can be made using a relatively low-dimensional dataset with a minimal set of predictors, which are largely demographic and noninvasive. This makes for a classification question. 
-
-This is in the service of another question: to what extent can such a dataset be thought of as a decision support system for medical practitioners, and/or serve towards an early-screening tool for stroke prevention and resource allocation (focusing on special precautions for those at-risk). Ideally, some insight into which of the factors are most relevant for predicting this outcome could be helpful too. 
+This is a public health example; the current study examines whether a moderately effectively prediction of stroke outcome (as a binary classification) can be made using a relatively low-dimensional dataset with a minimal set of predictors, which are largely demographic and noninvasive. This makes for a classification question. This is in the service of another question: to what extent can such a dataset be thought of as a decision support system for medical practitioners, and/or serve towards an early-screening tool for stroke prevention and resource allocation (focusing on special precautions for those at-risk). Ideally, some insight into which of the factors are most relevant for predicting this outcome could be helpful too. 
 
 
 ## How did you prepare and clean the data?
-
 The data required several preparation and cleaning steps. Essentially, after importing the data, variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. All variables were investigated for abnormal values and uncommon responses, as well as missing data. The BMI variable was missing 201 observations, which were assumed to be due to a missing-at-random and thus omitted. Categorical variables were also subject to some technical adjustments in order to allow usage in prediction algorithms. The caret package was used to create testing and training partitions, and some objects (such as a predictor matrix) were created for modeling purposes, as well as any necessary transformations (e.g. centering and scaling).
 
 # Section 2: Exploratory analysis/visualization
 
 ## Is there any interesting structure present in the data?
 
-WRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITE
-WRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITE
 There are many categorical variables, as well as a few nominal and ordinal variables. 
 
 There is only 1 "Other" in gender.
+
+It is clear from EDA that average glucose level is not normally distributed, exhibiting a bell-like curve near 100 units, but also a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. 
 
 
 //////// create plots for bmi vs glucose, for age histogram, glucose dist, bmi dist, stroke and gender
