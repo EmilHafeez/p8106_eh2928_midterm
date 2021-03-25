@@ -215,15 +215,6 @@ set.seed(1107)
 ctrl <- trainControl(method = "cv",
                      classProbs = TRUE, 
                      summaryFunction = twoClassSummary)
-#knn
-knn.fit <- train(x = stroke_df_no_na[,2:11],
-                   y = stroke_df_no_na$stroke,
-                   subset = trRows,
-                   method = "knn",
-                   preProcess = c("center","scale"),
-                   metric = "ROC",
-                   tuneGrid = data.frame(k = seq(1,200,by=10)),
-                   trControl = ctrl)
 #rf
 rf.grid <- expand.grid(mtry = 1:11,
                        splitrule = "gini",
@@ -405,32 +396,14 @@ what about:
 ```{r modeling 2, include = F}
 #from lecture 10
 #qda
-model.qda <- train(x = stroke_df_no_na[trRows,2:11],
-                   y = stroke_df_no_na$stroke[trRows],
-                   method = "qda",
+#knn
+knn.fit <- train(x = stroke_df_no_na[,2:11],
+                   y = stroke_df_no_na$stroke,
+                   subset = trRows,
+                   method = "knn",
+                   preProcess = c("center","scale"),
                    metric = "ROC",
+                   tuneGrid = data.frame(k = seq(1,200,by=10)),
                    trControl = ctrl)
-
-model.mars <- train(x = stroke_df_no_na[trRows,3:11],
-                    y = stroke_df_no_na$stroke[trRows],
-                    method = "earth",
-                    tuneGrid = expand.grid(degree = 1:3, 
-                                           nprune = 2:15),
-                    metric = "ROC",
-                    trControl = ctrl)
-
-#naive bayes
-nbGrid <- expand.grid(usekernel = c(FALSE,TRUE),
-                      fL = 1, 
-                      adjust = seq(.2, 3, by = .2))
-
-model.nb <- train(x = stroke_df_no_na[trRows,2:11],
-                   y = stroke_df_no_na$stroke[trRows],
-                  method = "nb",
-                  tuneGrid = nbGrid,
-                  metric = "ROC",
-                  trControl = ctrl)
-
-plot(model.nb)
 ```
-Or, the SVM
+Or, the SVM?
