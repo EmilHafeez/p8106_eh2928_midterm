@@ -43,21 +43,14 @@ scale_fill_discrete = scale_fill_viridis_d
 ```
 
 # Parameters for Report
-
 Your report should have the following sections (you can add other sections if you want) and should be no more than 3 pages, excluding figures and tables. The total number of figures and tables should not exceed 6.
 
 # Section 1: Introduction
 
 ## Describe your data set. Provide proper motivation for your work.
+This dataset contains 5110 observations, with de-identified individual patients as the unit of analysis. Each patient is characterized by their id, and a set of numerical and factor variables detailing basic demographic and biomedical information, like their gender, age, and average glucose level. The outcome of interest is a binary indicator of stroke. There is no information regarding prior stroke history.
 
-Load the dataset and describe the outcome and predictors. Provide summary statistics; examine its structure (and unit of analysis), as well as its cleanliness. Go into more detail about the outcome to provide motivation, and consider a citation.
-
-This dataset contains 5110 observations, with de-identified individual patients as the unit of analysis. Each patient is characterized by their id, and a set of numerical and factor variables detailing basic demographic and biomedical information, like their gender, age, marriage status, and glucose level. The outcome of interest is a binary indicator of stroke. 
-
-While limited information is provided by the data source, this dataset is thought to consider xxx or yyy type of stroke as stroke outcome.
-major burden of disease.
-preventative would be good.
-WRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITEWRITE. CITE. 
+While limited information is provided by the data source, this dataset is thought to consider both ischemic and hemorrhagic types of stroke as stroke outcome. These stroke outcomes are both very severe, and very prevalent; stroke is the leading cause of long-term adult disability and the fifth leading cause of death in the United States \(^{1,2}\). Race-ethnicity is also significantly associated with stroke incidence (though not included in this dataset), thereby making investigation a racial justice concern as well. \(^3\). As such a major source of disease, stroke is also quite expensive, estimated at about $34 billion per year due to healthcare services and missed work. As with many illnesses, earlier intervention in potential stroke patients improves outcomes. Were stroke outcomes to be predicted from a small set of predictors set as those available, it may be feasible to provide earlier intervention and preventative care, in order to avert these racial and political economic challenges. 
 
 ```{r start clean, include = F, message = F}
 stroke_df = read_csv("./data/healthcare-dataset-stroke-data.csv", na = "N/A")
@@ -104,23 +97,19 @@ x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
 y = stroke_df_no_na$stroke
 ```
 
-
 ```{r include = F}
 summary(stroke_df)
 ```
 ## What questions are you trying to answer?
 
-This is a public health example; trying to most effectively predict stroke (as a binary classification). Simple dataset. Relevant predictors, diagnostic criteria. Thus, this is a classification question.
+This is a public health example; the current study examines whether a moderately effectively prediction of stroke outcome (as a binary classification) can be made using a relatively low-dimensional dataset with a minimal set of predictors, which are largely demographic and noninvasive. This makes for a classification question. 
 
-How to allocate resource and to promote special precautions is hard.
-decision support system.
-thus, evaluate the feasibility of several predictive methods and determine if sufficient accuracy is available from a simple dataset like this.
-ideally, also get insight into which factors may be most relevant.
+This is in the service of another question: to what extent can such a dataset be thought of as a decision support system for medical practitioners, and/or serve towards an early-screening tool for stroke prevention and resource allocation (focusing on special precautions for those at-risk). Ideally, some insight into which of the factors are most relevant for predicting this outcome could be helpful too. 
+
 
 ## How did you prepare and clean the data?
 
-The data required minimal steps in order to prepare and clean it. Essentially, after importing the data, variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. The BMI variable was missing 201 observations, which were assumed to be due to a missing-at-random and thus omitted. The caret package was used to create testing and training subsets, and some objects (such as a predictor matrix) were created for modeling purposes, as well as some centering and scaling for certain analytic methods.
-
+The data required several preparation and cleaning steps. Essentially, after importing the data, variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. All variables were investigated for abnormal values and uncommon responses, as well as missing data. The BMI variable was missing 201 observations, which were assumed to be due to a missing-at-random and thus omitted. Categorical variables were also subject to some technical adjustments in order to allow usage in prediction algorithms. The caret package was used to create testing and training partitions, and some objects (such as a predictor matrix) were created for modeling purposes, as well as any necessary transformations (e.g. centering and scaling).
 
 # Section 2: Exploratory analysis/visualization
 
@@ -218,7 +207,7 @@ ctrl <- trainControl(method = "cv",
 #rf
 rf.grid <- expand.grid(mtry = 1:11,
                        splitrule = "gini",
-                       min.node.size = seq(from = 1, to = 100, by = 5))
+                       min.node.size = seq(from = 200, to = 300, by = 5))
 set.seed(1107)
 rf.fit <- train(stroke ~ . , 
                 stroke_df_no_na, 
@@ -233,7 +222,7 @@ ctree.fit <- train(stroke ~ . ,
                    stroke_df_no_na, 
                    subset = trRows,
                    method = "ctree",
-                   tuneGrid = data.frame(mincriterion = 1-exp(seq(-2, -1, length = 50))),
+                   tuneGrid = data.frame(mincriterion = 1-exp(seq(-10, -1, length = 50))),
                    metric = "ROC",
                    trControl = ctrl)
 #gbm
@@ -286,7 +275,7 @@ Tuning parameters include the minimum node size in the random forest algorithm a
 ## Discuss the training/test performance if you have a test data set.
 
 Comment on the below.
-
+Regarding the training data performance,
 ```{r modeling 3 comparison, include = F}
 res <- resamples(list(
                       knn = knn.fit,
@@ -301,6 +290,8 @@ summary(res)
 bwplot(res, metric = "ROC")
 ```
 
+
+Regarding the testing data performance,
 ```{r modeling 4 test performance, include = F}
 rf.pred <- predict(rf.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
 ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
@@ -330,30 +321,9 @@ legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
 Compute this and edit it.
 ```{r}
 ## add variable importance 
-set.seed(1)
-rf2.final.per <- ranger(Salary ~ . , 
-                        Hitters[trRows,],
-                        mtry = rf.fit$bestTune[[1]], 
-                        splitrule = "variance",
-                        min.node.size = rf.fit$bestTune[[3]],
-                        importance = "permutation",
-                        scale.permutation.importance = TRUE) 
-
-barplot(sort(ranger::importance(rf2.final.per), decreasing = FALSE), 
-        las = 2, horiz = TRUE, cex.names = 0.7,
-        col = colorRampPalette(colors = c("cyan","blue"))(19))
-
-set.seed(1)
-rf2.final.imp <- ranger(Salary ~ . , 
-                        Hitters[trRows,],
-                        mtry = rf.fit$bestTune[[1]], 
-                        splitrule = "variance",
-                        min.node.size = rf.fit$bestTune[[3]],
-                        importance = "impurity") 
-
-barplot(sort(ranger::importance(rf2.final.imp), decreasing = FALSE), 
-        las = 2, horiz = TRUE, cex.names = 0.7,
-        col = colorRampPalette(colors = c("cyan","blue"))(19))
+varImp(rf.fit)
+#For importance scores generated from varImp.train, a plot method can be used to visualize the results. In the plot below, the top option is used to make the image more readable.
+plot(gbmImp, top = 20)
 
 #Variable importance from boosting can be obtained using the `summary()` function.
 summary(gbm.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
@@ -368,6 +338,16 @@ Discuss limitations of selected models via their lecture notes.
 
 ## What were your findings? Are they what you expect? What insights into the data can you make?
 
+
+#Section 5: Bibliography
+1. Boehme, AK, Esenwa, C, & Elkind, MSV. Stroke risk factors, genetics, and prevention. Circulation Research. 2017; Retrieved 3/24/2021, from https://www.ahajournals.org/doi/full/10.1161/CIRCRESAHA.116.308398
+
+2. Roger VL, Go AS, Lloyd-Jones DM, et al.; American Heart Association Statistics Committee and Stroke Statistics Subcommittee. Heart disease and stroke statistics–2011 update: a report from the American Heart Association. Circulation. 2011; 123:e18–e209. doi: 10.1161/CIR.0b013e3182009701.
+
+3. Howard VJ, Kleindorfer DO, Judd SE, McClure LA, Safford MM, Rhodes JD, Cushman M, Moy CS, Soliman EZ, Kissela BM, Howard G. Disparities in stroke incidence contributing to disparities in stroke mortality. Annals of Neurol. 2011; 69:619–627. doi: 10.1002/ana.22385
+
+4. Giles, MF. Rothwell, PM. 2007. Risk of stroke early after transient ischaemic attack: a systematic review and meta-analysis. Neurology. 6:12, 1063-1072, doi: 10.1016/S1474-4422(07)70274-0. 
+
 #Section 666: OPEN QUESTIONS
 How to deal with this imbalanced data? Consider adding to data cleaning steps.
 What is the influence of so many predictors here?
@@ -376,6 +356,7 @@ WHICH OF THE EDA PLOTS TO KEEP IN THE REPORT?
 add corrplot to eda
 what assumptions does the gradient boosting make
 do i need to be inputting a matrix or selecting the outcome?
+ctree minimum criteria unstable; just selects lowest value
 
 what about:
 ```{r modeling 2, include = F}
