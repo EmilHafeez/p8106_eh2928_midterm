@@ -218,7 +218,7 @@ ctrl <- trainControl(method = "cv",
 #rf
 rf.grid <- expand.grid(mtry = 1:11,
                        splitrule = "gini",
-                       min.node.size = seq(from = 1, to = 100, by = 2))
+                       min.node.size = seq(from = 1, to = 100, by = 5))
 set.seed(1107)
 rf.fit <- train(stroke ~ . , 
                 stroke_df_no_na, 
@@ -281,9 +281,12 @@ This application focuses on tree-based methods and ensemble methods, given the p
 
 ## If there were tuning parameters, how did you pick their values?
 
-CV; describe function(s) using the tuning parameter grid.
+Tuning parameters include the minimum node size in the random forest algorithm and the minimum criterion in the conditional inference trees; the gradient boosting algorithm and the Adaptive Boosting version tunes the number of trees, interaction dept, shrinkage, and the minimum number of observations in each node. These were tuned using cross-validation, using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more granulars steps.
 
 ## Discuss the training/test performance if you have a test data set.
+
+Comment on the below.
+
 ```{r modeling 3 comparison, include = F}
 res <- resamples(list(
                       knn = knn.fit,
@@ -298,9 +301,7 @@ summary(res)
 bwplot(res, metric = "ROC")
 ```
 
-Make a box plot and discuss the winner in terms of mean RMSE or diagnostic criteria/ROC/AUC. 
 ```{r modeling 4 test performance, include = F}
-
 rf.pred <- predict(rf.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
 ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
 gbm.pred <- predict(gbm.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
@@ -356,7 +357,6 @@ barplot(sort(ranger::importance(rf2.final.imp), decreasing = FALSE),
 
 #Variable importance from boosting can be obtained using the `summary()` function.
 summary(gbm.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
-
 summary(gbmA.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
 ```
 
