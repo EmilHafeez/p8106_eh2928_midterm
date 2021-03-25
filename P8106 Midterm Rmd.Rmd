@@ -250,7 +250,6 @@ ctree.fit <- train(stroke ~ . ,
                    stroke_df_no_na, 
                    subset = trRows,
                    method = "ctree",
-                   importance = "permutation",
                    tuneGrid = data.frame(mincriterion = 1-exp(seq(-10, -1, length = 50))),
                    metric = "ROC",
                    trControl = ctrl)
@@ -264,7 +263,6 @@ gbm.fit <- train(stroke ~ . ,
                  stroke_df_no_na, 
                  subset = trRows,
                  method = "gbm",
-                 importance = "permutation",
                  tuneGrid = gbm.grid,
                  trControl = ctrl,
                  verbose = FALSE)
@@ -280,7 +278,6 @@ gbmA.fit <- train(stroke ~ . ,
                   tuneGrid = gbmA.grid,
                   trControl = ctrl,
                   method = "gbm",
-                  importance = "permutation",
                   distribution = "adaboost",
                   metric = "ROC",
                   verbose = FALSE)
@@ -350,15 +347,7 @@ Variable importance is computed by permutations, implemented during model traini
 ```{r}
 ## add variable importance 
 varImp(rf.fit)
-varImp(rf.fit)
-varImp(rf.fit)
-varImp(rf.fit)
-
-barplot(sort(ranger::importance(rf2.final.per), decreasing = FALSE), 
-        las = 2, horiz = TRUE, cex.names = 0.7,
-        col = colorRampPalette(colors = c("cyan","blue"))(19))
-
-varImp(rf.fit)
+varImp(ctree.fit)
 
 #For importance scores generated from varImp.train, a plot method can be used to visualize the results. In the plot below, the top option is used to make the image more readable.
 plot(gbmImp, top = 20)
@@ -422,4 +411,4 @@ NOW:
 -wait for finish model fitting. check resample and auc.
 -implement ROSE, plot the changes, change the model fitting using new dataset
 -rerun model fitting
--check variable importances
+-check variable importances are the same from the extraciton method and the permutation setting are the same.
