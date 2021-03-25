@@ -265,7 +265,6 @@ gbmA.fit <- train(stroke ~ . ,
                   metric = "ROC",
                   verbose = FALSE)
 
-ggplot(knn.fit, highlight = TRUE)
 ggplot(rf.fit, highlight = TRUE)
 ggplot(ctree.fit, highlight = TRUE)
 ggplot(gbm.fit, highlight = TRUE)
@@ -278,9 +277,7 @@ All variables from the dataset are included in modeling other than the arbitrary
 
 ## What technique did you use? What assumptions, if any, are being made by using this technique?
 
-This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, and gradient boosting (and adaboost). KNN is also used.
-
-These methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors. Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF).
+This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, and gradient boosting (and adaboost). These methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors. Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF). Gradient boosting and AdaBoost are used to address the limits of bagging, using weak classifiers and weighting to find best fits and combine classifiers, assuming that observations are independent, and sometimes assumptions about the interaction depth (though this is tuned here).
 
 ## If there were tuning parameters, how did you pick their values?
 
@@ -405,5 +402,8 @@ knn.fit <- train(x = stroke_df_no_na[,2:11],
                    metric = "ROC",
                    tuneGrid = data.frame(k = seq(1,200,by=10)),
                    trControl = ctrl)
+
+ggplot(knn.fit, highlight = TRUE)
+
 ```
 Or, the SVM?
