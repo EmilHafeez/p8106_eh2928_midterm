@@ -26,6 +26,7 @@ library(ggplot2)
 library(patchwork)
 library(pROC)
 library(corrplot)
+library(ROSE)
 library(tidyverse)
 ```
 
@@ -108,20 +109,13 @@ This is a public health example; the current study examines whether a moderately
 ## How did you prepare and clean the data?
 The data required several preparation and cleaning steps. Essentially, after importing the data, variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. All variables were investigated for abnormal values and uncommon responses, as well as missing data. The BMI variable was missing 201 observations, which were assumed to be due to a missing-at-random and thus omitted. Categorical variables were also subject to some technical adjustments in order to allow usage in prediction algorithms. The caret package was used to create testing and training partitions, and some objects (such as a predictor matrix) were created for modeling purposes, as well as any necessary transformations (e.g. centering and scaling).
 
+ADD NEEDEDING TO REBALANCE USING ROSE
+
 # Section 2: Exploratory analysis/visualization
 
 ## Is there any interesting structure present in the data?
 
-There are many categorical variables, as well as a few nominal and ordinal variables. 
-
-There is only 1 "Other" in gender.
-
-It is clear from EDA that average glucose level is not normally distributed, exhibiting a bell-like curve near 100 units, but also a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. 
-
-
-//////// create plots for bmi vs glucose, for age histogram, glucose dist, bmi dist, stroke and gender
-//////// plot gender with age, glucose, bmi, gender vs other categoricals
-////////correlation plot
+Data summaries, pair-wise visualizations (boxplots between groups), grouped visualizations (scatter plots with continuous variables and groups), and correlation plots were used. There are many categorical variables, as well as a few nominal and ordinal variables; this presents several challenges for modeling and is a key feature of the data. Other than the missing BMI observations, it is also notable that of the 5110 original observations, only 1 marked "Other" for their gender, which limits the variability modeling can leverage in that regard. 
 
 ```{r visualization, include = F}
 #histograms
@@ -166,7 +160,35 @@ p1 =
   geom_point(aes(x = avg_glucose_level, y = bmi, color = age), alpha = 0.75)
 p1
 
-(p2 + p3 + p4) / (p5 + p6 +p7) / (p1)
+p8 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_point(aes(x = avg_glucose_level, y = bmi, color = age, group = stroke), alpha = 0.75) +
+  facet_grid(. ~ stroke)
+p8
+
+(p2 + p3 + p4) / (p5 + p6 +p7) / (p1 | p8)
+
+stroke_df_no_na$stroke_labs = factor(stroke_df_no_na$stroke)
+stroke_df_no_na$stroke_labs = factor(
+                                      stroke_df_no_na$stroke, 
+                                      levels = c("X0", "X1"), 
+                                      labels = c("No Stroke", "Stroke"))
+
+p9 =
+  ggplot(data = stroke_df_no_na) +
+  geom_point(aes(x = avg_glucose_level, y = bmi, color = age, group = stroke_labs), alpha = 0.75) +
+  facet_grid(. ~ stroke_labs) +
+  labs(
+    title = "Distributions of Average Glucose Level vs BMI, by Stroke Outcome",
+    x = "Average Glucose Level",
+    y = "BMI",
+    caption = "Note the relative absence of younger ages among those with stroke outcomes") +
+  theme(plot.title = element_text(hjust = .5))
+p9
+
+stroke_df_no_na = 
+  stroke_df_no_na %>% 
+  select(-stroke_labs)
 ```
 
 ```{r}
@@ -174,11 +196,19 @@ corrplot(cor(x), method = "square", type = "upper")
 ```
 ## What were your findings?
 
-Describe the summary statistics and talk about the potential relevance; anything else?
+It is clear from EDA that average glucose level is not normally distributed, exhibiting a bell-like curve near 100 units, but also a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity).
 
-## Here you can use any techniques as long as they are adequately explained. If you cannot find anything interesting, then describe what you tried and show that there isn’t much visible structure. Data science is NOT manipulating the data in some way until you get an answer.
- 
 # Section 3: Models (Biggest section!!)
+```{r address imbalance, include=F}
+table(stroke_df_no_na$stroke)
+
+stroke_df_no_na_ROSE = ROSE(
+                            stroke ~ . , 
+                            data = stroke_df_no_na,
+                            p = 0.5, 
+                            seed(1107)
+)
+```
 
 ```{r training selection object, include = F}
 set.seed(1107)
@@ -210,6 +240,7 @@ rf.fit <- train(stroke ~ . ,
                 stroke_df_no_na, 
                 subset = trRows,
                 method = "ranger",
+                importance = "permutation",
                 tuneGrid = rf.grid,
                 metric = "ROC",
                 trControl = ctrl)
@@ -219,6 +250,7 @@ ctree.fit <- train(stroke ~ . ,
                    stroke_df_no_na, 
                    subset = trRows,
                    method = "ctree",
+                   importance = "permutation",
                    tuneGrid = data.frame(mincriterion = 1-exp(seq(-10, -1, length = 50))),
                    metric = "ROC",
                    trControl = ctrl)
@@ -227,11 +259,12 @@ set.seed(1107)
 gbm.grid <- expand.grid(n.trees = c(2000,3000,4000),
                         interaction.depth = 1:4,
                         shrinkage = c(0.001,0.003,0.005),
-                        n.minobsinnode = c(1,10))
+                        n.minobsinnode = c(1,5,10))
 gbm.fit <- train(stroke ~ . , 
                  stroke_df_no_na, 
                  subset = trRows,
                  method = "gbm",
+                 importance = "permutation",
                  tuneGrid = gbm.grid,
                  trControl = ctrl,
                  verbose = FALSE)
@@ -247,6 +280,7 @@ gbmA.fit <- train(stroke ~ . ,
                   tuneGrid = gbmA.grid,
                   trControl = ctrl,
                   method = "gbm",
+                  importance = "permutation",
                   distribution = "adaboost",
                   metric = "ROC",
                   verbose = FALSE)
@@ -259,7 +293,7 @@ ggplot(gbmA.fit, highlight = TRUE)
 
 ## What predictor variables did you include?
 
-All variables from the dataset are included in modeling other than the arbitrary numeric identifier. The dataset is not high dimensional, and no variable selection procedures prior to modeling were implemented. Rather than parsing the number of predictor variables, this analysis was primarily limited by the large quantity of categorical variables in the predictor set, since this limited the algorithms which could be applied to the training data.
+All variables from the dataset are included in modeling other than the arbitrary numeric identifier. The dataset is not high dimensional, and no variable selection procedures prior to modeling were implemented. Rather than reducing the dimensionality due to a large number of predictor variables, this analysis was primarily affected by the large quantity of categorical variables in the predictor set, since this limited the algorithms which could be applied to the training data.
 
 ## What technique did you use? What assumptions, if any, are being made by using this technique?
 
@@ -267,27 +301,23 @@ This application focuses on tree-based methods and ensemble methods, given the p
 
 ## If there were tuning parameters, how did you pick their values?
 
-Tuning parameters include the minimum node size in the random forest algorithm and the minimum criterion in the conditional inference trees; the gradient boosting algorithm and the Adaptive Boosting version tunes the number of trees, interaction dept, shrinkage, and the minimum number of observations in each node. These were tuned using cross-validation, using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more granulars steps.
+Tuning parameters include the minimum node size in the random forest algorithm and the minimum criterion in the conditional inference trees; the gradient boosting algorithm and the Adaptive Boosting version tunes the number of trees, interaction dept, shrinkage, and the minimum number of observations in each node. These were tuned using cross-validation, using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more granular steps.
 
 ## Discuss the training/test performance if you have a test data set.
-
 Comment on the below.
 Regarding the training data performance,
 ```{r modeling 3 comparison, include = F}
 res <- resamples(list(
-                      knn = knn.fit,
                       rf = rf.fit,
-                      ctree = rf.fit,
-                      gbm = rf.fit,
-                      gbma = rf.fit
+                      ctree = ctree.fit,
+                      gbm = gbm.fit,
+                      gbma = gbmA.fit
                       )
                  )
 summary(res)
 
 bwplot(res, metric = "ROC")
 ```
-
-
 Regarding the testing data performance,
 ```{r modeling 4 test performance, include = F}
 rf.pred <- predict(rf.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
@@ -296,9 +326,9 @@ gbm.pred <- predict(gbm.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")
 gbmA.pred <- predict(gbmA.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
 
 roc.rf <- roc(stroke_df_no_na$stroke[-trRows], rf.pred)
-roc.ctree <- roc(dat$diabetes[-trRows], ctree.pred)
-roc.gbm <- roc(dat$diabetes[-trRows], gbm.pred)
-roc.gbmA <- roc(dat$diabetes[-trRows], gbmA.pred)
+roc.ctree <- roc(stroke_df_no_na$stroke[-trRows], ctree.pred)
+roc.gbm <- roc(stroke_df_no_na$stroke[-trRows], gbm.pred)
+roc.gbmA <- roc(stroke_df_no_na$stroke[-trRows], gbmA.pred)
 
 auc <- c(roc.rf$auc[1], roc.ctree$auc[1], roc.gbm$auc[1],
          roc.gbmA$auc[1])
@@ -315,10 +345,21 @@ legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
 
 ## Which variables play important roles in predicting the response?
 
-Compute this and edit it.
+Variable importance is computed by permutations, implemented during model training. Having extracted these results from each model, one can see there is relative consistency between approaches as to which variables are most important: age, average glucose level, hypertension, currently smokes, and BMI.
+
 ```{r}
 ## add variable importance 
 varImp(rf.fit)
+varImp(rf.fit)
+varImp(rf.fit)
+varImp(rf.fit)
+
+barplot(sort(ranger::importance(rf2.final.per), decreasing = FALSE), 
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan","blue"))(19))
+
+varImp(rf.fit)
+
 #For importance scores generated from varImp.train, a plot method can be used to visualize the results. In the plot below, the top option is used to make the image more readable.
 plot(gbmImp, top = 20)
 
@@ -329,7 +370,9 @@ summary(gbmA.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
 
 ## What are the limitations of the models you used (if there are any)? Are the models flexible enough to capture the underlying truth?
 
-Discuss limitations of selected models via their lecture notes.
+All of these methods can be limited in their interpretability; while their flexibility is particularly useful for underlying complex truths, they are black-box methods where we have limited control over the models' findings and interpretation. Since, generally speaking, bagging methods reduce variance by applying the same algorithm to a bootstrapped sample (sampling with replacement), and boosting can help to reduce bias by weighting weak learners, it is wise to apply both. We know due to the bias-variance tradeoff that these characteristics are in tension, and seek to capture the underlying truth by examining both options separately.
+
+"An advantage of using this method is that it leads to no information loss. The disadvantage of using this method is that, since oversampling simply adds replicated observations in original data set, it ends up adding multiple observations of several types, thus leading to overfitting. Although, the training accuracy of such data set will be high, but the accuracy on unseen data will be worse."
 
 # Section 4: Conclusions
 
@@ -346,14 +389,14 @@ Discuss limitations of selected models via their lecture notes.
 4. Giles, MF. Rothwell, PM. 2007. Risk of stroke early after transient ischaemic attack: a systematic review and meta-analysis. Neurology. 6:12, 1063-1072, doi: 10.1016/S1474-4422(07)70274-0. 
 
 #Section 666: OPEN QUESTIONS
-How to deal with this imbalanced data? Consider adding to data cleaning steps.
-What is the influence of so many predictors here?
-add viridis....
+How to deal with this imbalanced data? Consider adding to data cleaning steps
+Exactly the same AUC values but different curves -- is this a caret specification?
 WHICH OF THE EDA PLOTS TO KEEP IN THE REPORT?
-add corrplot to eda
-what assumptions does the gradient boosting make
-do i need to be inputting a matrix or selecting the outcome?
+implement ROSE.
+do i need to be inputting a matrix or selecting the outcome for caret?
 ctree minimum criteria unstable; just selects lowest value
+ADD NEEDEDING TO REBALANCE USING ROSE
+
 
 what about:
 ```{r modeling 2, include = F}
@@ -373,3 +416,10 @@ ggplot(knn.fit, highlight = TRUE)
 
 ```
 Or, the SVM?
+
+
+NOW:
+-wait for finish model fitting. check resample and auc.
+-implement ROSE, plot the changes, change the model fitting using new dataset
+-rerun model fitting
+-check variable importances
