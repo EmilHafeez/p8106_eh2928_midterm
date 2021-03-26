@@ -266,26 +266,32 @@ ridge.fit <- train(stroke ~ . ,
 # coefficients in the final model
 #coef(ridge.fit$finalModel, s = ridge.fit$bestTune$lambda)
 
-#gbm ada
-gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
-                         interaction.depth = 1:6,
-                         shrinkage = c(0.001,0.003,0.005),
-                         n.minobsinnode = c(1,10))
+
+#xgboost
+xgboost.grid <- expand.grid(
+                          nrounds = seq(from = 200, to = 1000, by = 50),
+                          eta = c(0.025, 0.05, 0.1, 0.3),
+                          max_depth = c(1, 2, 3, 4, 5, 6),
+                          gamma = 0,
+                          colsample_bytree = 1,
+                          min_child_weight = 1,
+                          subsample = 1
+                        )
+
 set.seed(1107)
-gbmA.fit <- train(stroke ~ . , 
+xgboost.fit <- train(stroke ~ . , 
                   stroke_df_no_na_ROSE, 
                   subset = trRows, 
-                  tuneGrid = gbmA.grid,
+                  tuneGrid = xgboost.grid,
                   trControl = ctrl,
-                  method = "gbm",
-                  distribution = "adaboost",
+                  method = "xgbTree",
                   metric = "ROC",
                   verbose = FALSE)
 
 ggplot(rf.fit, highlight = TRUE)
 ggplot(ctree.fit, highlight = TRUE)
-ggplot(gbm.fit, highlight = TRUE)
-ggplot(gbmA.fit, highlight = TRUE)
+ggplot(ridge.fit, highlight = TRUE)
+ggplot(xgboost.fit, highlight = TRUE)
 ```
 
 ```{r}
@@ -332,26 +338,33 @@ ridge.fit.norose <- train(stroke ~ . ,
 # coefficients in the final model
 #coef(ridge.fit$finalModel, s = ridge.fit$bestTune$lambda)
 
-#gbm ada
-gbmA.grid.norose <- expand.grid(n.trees = c(2000,3000,4000),
-                         interaction.depth = 1:6,
-                         shrinkage = c(0.001,0.003,0.005),
-                         n.minobsinnode = c(1,10))
+
+#xgboost
+xgboost.grid.norose <- expand.grid(
+                          nrounds = seq(from = 200, to = 1000, by = 50),
+                          eta = c(0.025, 0.05, 0.1, 0.3),
+                          max_depth = c(1, 2, 3, 4, 5, 6),
+                          gamma = 0,
+                          colsample_bytree = 1,
+                          min_child_weight = 1,
+                          subsample = 1
+                        )
+
 set.seed(1107)
-gbmA.fit.norose <- train(stroke ~ . , 
-                  stroke_df_no_na, 
+xgboost.fit.norose <- train(stroke ~ . , 
+                  stroke_df_no_na_ROSE, 
                   subset = trRows, 
-                  tuneGrid = gbmA.grid.norose,
+                  tuneGrid = xgboost.grid.norose,
                   trControl = ctrl,
-                  method = "gbm",
-                  distribution = "adaboost",
+                  method = "xgbTree",
                   metric = "ROC",
                   verbose = FALSE)
 
+
 ggplot(rf.fit.norose, highlight = TRUE)
 ggplot(ctree.fit.norose, highlight = TRUE)
-ggplot(gbm.fit.norose, highlight = TRUE)
-ggplot(gbmA.fit.norose, highlight = TRUE)
+ggplot(ridge.fit.norose, highlight = TRUE)
+ggplot(xgboost.fit.norose, highlight = TRUE)
 ```
 
 
@@ -375,12 +388,12 @@ Regarding the training data performance,
 res <- resamples(list(
                       rf = rf.fit,
                       ctree = ctree.fit,
-                      gbma = gbmA.fit,
+                      xgboost = xgboost.fit,
                       ridge = ridge.fit, #norose now
-                      rf = rf.fit.norose,
-                      ctree = ctree.fit.norose,
-                      gbma = gbmA.fit.norose,
-                      ridge = ridge.fit.norose,
+                      rf.norose = rf.fit.norose,
+                      ctree.norose = ctree.fit.norose,
+                      xgboost.norose = xgboost.fit.norose,
+                      ridge.norose = ridge.fit.norose,
                       )
                  )
 summary(res)
@@ -391,24 +404,24 @@ Regarding the testing data performance,
 ```{r modeling 4 test performance, include = F}
 rf.pred <- predict(rf.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
-gbmA.pred <- predict(gbmA.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+xgboost.pred <- predict(xgboost.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 ridge.pred <- predict(ridge.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 #norose
-rf.pred <- predict(rf.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-ctree.pred <- predict(ctree.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-gbmA.pred <- predict(gbmA.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-ridge.pred <- predict(ridge.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+rf.pred.norose <- predict(rf.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+ctree.pred.norose <- predict(ctree.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+xgboost.pred.norose <- predict(xgboost.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+ridge.pred.norose <- predict(ridge.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
 
 
 roc.rf <- roc(stroke_df_no_na_ROSE$stroke[-trRows], rf.pred)
 roc.ctree <- roc(stroke_df_no_na_ROSE$stroke[-trRows], ctree.pred)
-roc.gbmA <- roc(stroke_df_no_na_ROSE$stroke[-trRows], gbmA.pred)
+roc.xgboost <- roc(stroke_df_no_na_ROSE$stroke[-trRows], xgboost.pred)
 roc.ridge <- roc(stroke_df_no_na_ROSE$stroke[-trRows], ridge.pred)
 #norose
-roc.rf.norose <- roc(stroke_df_no_na$stroke[-trRows], rf.pred)
-roc.ctree.norose <- roc(stroke_df_no_na$stroke[-trRows], ctree.pred)
-roc.gbmA.norose <- roc(stroke_df_no_na$stroke[-trRows], gbmA.pred)
-roc.ridge.norose <- roc(stroke_df_no_na$stroke[-trRows], ridge.pred)
+roc.rf.norose <- roc(stroke_df_no_na$stroke[-trRows], rf.pred.norose)
+roc.ctree.norose <- roc(stroke_df_no_na$stroke[-trRows], ctree.pred.norose)
+roc.gbmA.norose <- roc(stroke_df_no_na$stroke[-trRows], xgboost.pred.norose)
+roc.ridge.norose <- roc(stroke_df_no_na$stroke[-trRows], ridge.pred.norose)
 
 auc <- c(roc.rf$auc[1], 
          roc.ctree$auc[1], 
@@ -416,17 +429,17 @@ auc <- c(roc.rf$auc[1],
          roc.ridge$auc[1], #norose now
          roc.rf.norose$auc[1], 
          roc.ctree.norose$auc[1], 
-         roc.gbmA.norose$auc[1],
+         roc.xgboost.norose$auc[1],
          roc.ridge.norose$auc[1])
 
 #plot
 plot(roc.rf, legacy.axes = TRUE)
 plot(roc.ctree, col = 2, add = TRUE)
-plot(roc.gbmA, col = 4, add = TRUE)
+plot(roc.xgboost, col = 4, add = TRUE)
 plot(roc.ridge, col = 4, add = TRUE) #norosenow
 plot(roc.rf.norose, legacy.axes = TRUE)
 plot(roc.ctree.norose, col = 2, add = TRUE)
-plot(roc.gbmA.norose, col = 4, add = TRUE)
+plot(roc.xgboost.norose, col = 4, add = TRUE)
 plot(roc.ridge.norose, col = 4, add = TRUE) 
 modelNames <- c("rf","ctree","gbm","gbmA")
 #legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)), col = 1:5, lwd = 2)
@@ -490,3 +503,43 @@ NOW:
 -check variable importances are the same from the extraction method and the permutation setting are the same.
 
 --run them, compare performance, do var import
+
+
+```{r}
+#gbm ada
+gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
+                         interaction.depth = 1:6,
+                         shrinkage = c(0.001,0.003,0.005),
+                         n.minobsinnode = c(1,10))
+set.seed(1107)
+gbmA.fit <- train(stroke ~ . , 
+                  stroke_df_no_na_ROSE, 
+                  subset = trRows, 
+                  tuneGrid = gbmA.grid,
+                  trControl = ctrl,
+                  method = "gbm",
+                  distribution = "adaboost",
+                  metric = "ROC",
+                  verbose = FALSE)
+                  
+
+#gbm ada
+gbmA.grid.norose <- expand.grid(n.trees = c(2000,3000,4000),
+                         interaction.depth = 1:6,
+                         shrinkage = c(0.001,0.003,0.005),
+                         n.minobsinnode = c(1,10))
+set.seed(1107)
+gbmA.fit.norose <- train(stroke ~ . , 
+                  stroke_df_no_na, 
+                  subset = trRows, 
+                  tuneGrid = gbmA.grid.norose,
+                  trControl = ctrl,
+                  method = "gbm",
+                  distribution = "adaboost",
+                  metric = "ROC",
+                  verbose = FALSE)
+```
+
+
+
+                  
