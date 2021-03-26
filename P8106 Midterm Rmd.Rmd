@@ -183,6 +183,11 @@ stroke_df_no_na =
 ```
 
 ```{r}
+# matrix of predictors
+x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
+#vector of response
+y = stroke_df_no_na$stroke
+
 corrplot(cor(x), method = "square", type = "upper")
 ```
 ## What were your findings?
