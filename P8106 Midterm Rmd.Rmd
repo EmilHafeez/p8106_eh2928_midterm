@@ -102,8 +102,6 @@ This is a public health example; the current study examines whether a moderately
 ## How did you prepare and clean the data?
 The data required several preparation and cleaning steps. Essentially, after importing the data, variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. All variables were investigated for abnormal values and uncommon responses, as well as missing data. The BMI variable was missing 201 observations, which were assumed to be due to a missing-at-random and thus omitted. Categorical variables were also subject to some technical adjustments in order to allow usage in prediction algorithms. The caret package was used to create testing and training partitions, and some objects (such as a predictor matrix) were created for modeling purposes, as well as any necessary transformations (e.g. centering and scaling).
 
-ADD NEEDEDING TO REBALANCE USING ROSE
-
 # Section 2: Exploratory analysis/visualization
 
 ## Is there any interesting structure present in the data?
@@ -200,7 +198,6 @@ stroke_df_no_na_ROSE = ROSE(
                             p = 0.5, 
                             seed = 1107
                             )$data
-
 ```
 
 ```{r}
@@ -225,9 +222,8 @@ ctrl <- trainControl(method = "cv",
                      classProbs = TRUE)
 ```
 
-```{r modeling approaches and graphs, include = F, cache = T}
-
-#ranger rf
+```{r modeling approaches and graphs with rose, include = F, cache = T}
+#no label is ROSE, next will be labeled 2 with ROSE
 set.seed(1107)
 ctrl <- trainControl(method = "cv",
                      classProbs = TRUE, 
@@ -255,38 +251,20 @@ ctree.fit <- train(stroke ~ . ,
                    metric = "ROC",
                    trControl = ctrl)
 
-## Ridge 
+## Ridge
+
 # matrix of predictors (glmnet uses input matrix)
-x <- stroke_df_no_na_ROSE[trRows,]
-# vector of response
-y <- stroke_df_no_na_ROSE$stroke[trRows]
 #`alpha` is the elastic net mixing parameter. `alpha=1` is the lasso penalty, and `alpha=0` the ridge penalty. `glmnet()` function standardizes the independent variables by default (The coefficients are always returned on the original scale). 
-
-# fit the ridge regression (alpha = 0) with a sequence of lambdas
-ridge.mod <- glmnet(x = x, y = y, 
-                    standardize = TRUE,
-                    alpha = 0, 
-                    lambda = exp(seq(10, -2, length = 100)))
-
-ridge.fit <- train(x, y,
+ridge.fit <- train(stroke ~ . , 
+                   stroke_df_no_na_ROSE,
                    method = "glmnet",
                    tuneGrid = expand.grid(alpha = 0, 
-                                          lambda = exp(seq(10, -2, length=100))),
+                                          lambda = exp(seq(10, -10, length=100))),
                    # preProc = c("center", "scale"),
-                   trControl = ctrl1)
-
-plot(ridge.fit, xTrans = log)
-
-ridge.fit$bestTune
-
+                   trControl = ctrl)
+#plot(ridge.fit, xTrans = log)
 # coefficients in the final model
-coef(ridge.fit$finalModel, s = ridge.fit$bestTune$lambda)
-
-
-
-
-
-
+#coef(ridge.fit$finalModel, s = ridge.fit$bestTune$lambda)
 
 #gbm ada
 gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
@@ -310,6 +288,74 @@ ggplot(gbm.fit, highlight = TRUE)
 ggplot(gbmA.fit, highlight = TRUE)
 ```
 
+```{r}
+#no label is ROSE, next will be labeled 2 with ROSE
+set.seed(1107)
+ctrl <- trainControl(method = "cv",
+                     classProbs = TRUE, 
+                     summaryFunction = twoClassSummary)
+#rf
+rf.grid.norose <- expand.grid(mtry = 1:11,
+                       splitrule = "gini",
+                       min.node.size = seq(from = 10, to = 100, by = 10))
+set.seed(1107)
+rf.fit.norose <- train(stroke ~ . , 
+                stroke_df_no_na, 
+                subset = trRows,
+                method = "ranger",
+                importance = "permutation",
+                tuneGrid = rf.grid.norose,
+                metric = "ROC",
+                trControl = ctrl)
+#coninf tree
+set.seed(1107)
+ctree.fit.norose <- train(stroke ~ . , 
+                   stroke_df_no_na, 
+                   subset = trRows,
+                   method = "ctree",
+                   tuneGrid = data.frame(mincriterion = seq(0, 1, length = 10)),
+                   metric = "ROC",
+                   trControl = ctrl)
+
+## Ridge
+
+# matrix of predictors (glmnet uses input matrix)
+#`alpha` is the elastic net mixing parameter. `alpha=1` is the lasso penalty, and `alpha=0` the ridge penalty. `glmnet()` function standardizes the independent variables by default (The coefficients are always returned on the original scale). 
+ridge.fit.norose <- train(stroke ~ . , 
+                   stroke_df_no_na,
+                   method = "glmnet",
+                   tuneGrid = expand.grid(alpha = 0, 
+                                          lambda = exp(seq(10, -10, length=100))),
+                   # preProc = c("center", "scale"),
+                   trControl = ctrl)
+#plot(ridge.fit, xTrans = log)
+# coefficients in the final model
+#coef(ridge.fit$finalModel, s = ridge.fit$bestTune$lambda)
+
+#gbm ada
+gbmA.grid.norose <- expand.grid(n.trees = c(2000,3000,4000),
+                         interaction.depth = 1:6,
+                         shrinkage = c(0.001,0.003,0.005),
+                         n.minobsinnode = c(1,10))
+set.seed(1107)
+gbmA.fit.norose <- train(stroke ~ . , 
+                  stroke_df_no_na, 
+                  subset = trRows, 
+                  tuneGrid = gbmA.grid.norose,
+                  trControl = ctrl,
+                  method = "gbm",
+                  distribution = "adaboost",
+                  metric = "ROC",
+                  verbose = FALSE)
+
+ggplot(rf.fit.norose, highlight = TRUE)
+ggplot(ctree.fit.norose, highlight = TRUE)
+ggplot(gbm.fit.norose, highlight = TRUE)
+ggplot(gbmA.fit.norose, highlight = TRUE)
+```
+
+
+
 ## What predictor variables did you include?
 
 All variables from the dataset are included in modeling other than the arbitrary numeric identifier. The dataset is not high dimensional, and no variable selection procedures prior to modeling were implemented. Rather than reducing the dimensionality due to a large number of predictor variables, this analysis was primarily affected by the large quantity of categorical variables in the predictor set, since this limited the algorithms which could be applied to the training data.
@@ -329,8 +375,12 @@ Regarding the training data performance,
 res <- resamples(list(
                       rf = rf.fit,
                       ctree = ctree.fit,
-                      gbm = gbm.fit,
-                      gbma = gbmA.fit
+                      gbma = gbmA.fit,
+                      ridge = ridge.fit, #norose now
+                      rf = rf.fit.norose,
+                      ctree = ctree.fit.norose,
+                      gbma = gbmA.fit.norose,
+                      ridge = ridge.fit.norose,
                       )
                  )
 summary(res)
@@ -341,25 +391,45 @@ Regarding the testing data performance,
 ```{r modeling 4 test performance, include = F}
 rf.pred <- predict(rf.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
-gbm.pred <- predict(gbm.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 gbmA.pred <- predict(gbmA.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+ridge.pred <- predict(ridge.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+#norose
+rf.pred <- predict(rf.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+ctree.pred <- predict(ctree.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+gbmA.pred <- predict(gbmA.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+ridge.pred <- predict(ridge.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+
 
 roc.rf <- roc(stroke_df_no_na_ROSE$stroke[-trRows], rf.pred)
 roc.ctree <- roc(stroke_df_no_na_ROSE$stroke[-trRows], ctree.pred)
-roc.gbm <- roc(stroke_df_no_na_ROSE$stroke[-trRows], gbm.pred)
 roc.gbmA <- roc(stroke_df_no_na_ROSE$stroke[-trRows], gbmA.pred)
+roc.ridge <- roc(stroke_df_no_na_ROSE$stroke[-trRows], ridge.pred)
+#norose
+roc.rf.norose <- roc(stroke_df_no_na$stroke[-trRows], rf.pred)
+roc.ctree.norose <- roc(stroke_df_no_na$stroke[-trRows], ctree.pred)
+roc.gbmA.norose <- roc(stroke_df_no_na$stroke[-trRows], gbmA.pred)
+roc.ridge.norose <- roc(stroke_df_no_na$stroke[-trRows], ridge.pred)
 
-auc <- c(roc.rf$auc[1], roc.ctree$auc[1], roc.gbm$auc[1],
-         roc.gbmA$auc[1])
+auc <- c(roc.rf$auc[1], 
+         roc.ctree$auc[1], 
+         roc.gbmA$auc[1],
+         roc.ridge$auc[1], #norose now
+         roc.rf.norose$auc[1], 
+         roc.ctree.norose$auc[1], 
+         roc.gbmA.norose$auc[1],
+         roc.ridge.norose$auc[1])
 
 #plot
 plot(roc.rf, legacy.axes = TRUE)
 plot(roc.ctree, col = 2, add = TRUE)
-plot(roc.gbm, col = 3, add = TRUE)
 plot(roc.gbmA, col = 4, add = TRUE)
+plot(roc.ridge, col = 4, add = TRUE) #norosenow
+plot(roc.rf.norose, legacy.axes = TRUE)
+plot(roc.ctree.norose, col = 2, add = TRUE)
+plot(roc.gbmA.norose, col = 4, add = TRUE)
+plot(roc.ridge.norose, col = 4, add = TRUE) 
 modelNames <- c("rf","ctree","gbm","gbmA")
-legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
-       col = 1:4, lwd = 2)
+#legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)), col = 1:5, lwd = 2)
 ```
 
 ## Which variables play important roles in predicting the response?
@@ -419,3 +489,4 @@ NOW:
 --
 -check variable importances are the same from the extraction method and the permutation setting are the same.
 
+--run them, compare performance, do var import
