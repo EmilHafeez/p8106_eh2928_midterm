@@ -264,7 +264,7 @@ ridge.fit <- train(stroke ~ . ,
                    stroke_df_no_na_ROSE,
                    method = "glmnet",
                    tuneGrid = expand.grid(alpha = 0, 
-                                          lambda = exp(seq(10, -10, length=100))),
+                                          lambda = seq(10, -10, length=100)),
                    # preProc = c("center", "scale"),
                    trControl = ctrl)
 #plot(ridge.fit, xTrans = log)
@@ -336,7 +336,7 @@ ridge.fit.norose <- train(stroke ~ . ,
                    stroke_df_no_na,
                    method = "glmnet",
                    tuneGrid = expand.grid(alpha = 0, 
-                                          lambda = exp(seq(10, -10, length=100))),
+                                          lambda = seq(10, -10, length=100)),
                    # preProc = c("center", "scale"),
                    trControl = ctrl)
 #plot(ridge.fit, xTrans = log)
@@ -398,7 +398,7 @@ res <- resamples(list(
                       rf.norose = rf.fit.norose,
                       ctree.norose = ctree.fit.norose,
                       xgboost.norose = xgboost.fit.norose,
-                      ridge.norose = ridge.fit.norose,
+                      ridge.norose = ridge.fit.norose
                       )
                  )
 summary(res)
@@ -412,10 +412,10 @@ ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type 
 xgboost.pred <- predict(xgboost.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 ridge.pred <- predict(ridge.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 #norose
-rf.pred.norose <- predict(rf.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-ctree.pred.norose <- predict(ctree.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-xgboost.pred.norose <- predict(xgboost.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-ridge.pred.norose <- predict(ridge.fit.rose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+rf.pred.norose <- predict(rf.fit.norose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+ctree.pred.norose <- predict(ctree.fit.norose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+xgboost.pred.norose <- predict(xgboost.fit.norose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+ridge.pred.norose <- predict(ridge.fit.norose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
 
 
 roc.rf <- roc(stroke_df_no_na_ROSE$stroke[-trRows], rf.pred)
@@ -425,12 +425,12 @@ roc.ridge <- roc(stroke_df_no_na_ROSE$stroke[-trRows], ridge.pred)
 #norose
 roc.rf.norose <- roc(stroke_df_no_na$stroke[-trRows], rf.pred.norose)
 roc.ctree.norose <- roc(stroke_df_no_na$stroke[-trRows], ctree.pred.norose)
-roc.gbmA.norose <- roc(stroke_df_no_na$stroke[-trRows], xgboost.pred.norose)
+roc.xgboost.norose <- roc(stroke_df_no_na$stroke[-trRows], xgboost.pred.norose)
 roc.ridge.norose <- roc(stroke_df_no_na$stroke[-trRows], ridge.pred.norose)
 
 auc <- c(roc.rf$auc[1], 
          roc.ctree$auc[1], 
-         roc.gbmA$auc[1],
+         roc.xgboost$auc[1],
          roc.ridge$auc[1], #norose now
          roc.rf.norose$auc[1], 
          roc.ctree.norose$auc[1], 
@@ -447,7 +447,7 @@ plot(roc.ctree.norose, col = 2, add = TRUE)
 plot(roc.xgboost.norose, col = 4, add = TRUE)
 plot(roc.ridge.norose, col = 4, add = TRUE) 
 modelNames <- c("rf","ctree","gbm","gbmA")
-#legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)), col = 1:5, lwd = 2)
+legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)), col = 1:8, lwd = 2)
 ```
 
 ## Which variables play important roles in predicting the response?
@@ -490,61 +490,11 @@ All of these methods can be limited in their interpretability; while their flexi
 #Section 666: OPEN QUESTIONS
 # Questions for office hours
 
-
-WHICH OF THE EDA PLOTS TO KEEP IN THE REPORT?
-
--wait for finish model fitting. check resample and auc.
--implement ROSE, plot the changes, change the model fitting using new dataset
--rerun model fitting
-
-
 NOW:
-
-
---take out gbm
---add ridge
---compare ROSE training and regular training
---
--check variable importances are the same from the extraction method and the permutation setting are the same.
-
+WHICH OF THE EDA PLOTS TO KEEP IN THE REPORT?
+--check variable importances are the same from the extraction method and the permutation setting are the same.
 --run them, compare performance, do var import
-
-
-```{r}
-#gbm ada
-gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
-                         interaction.depth = 1:6,
-                         shrinkage = c(0.001,0.003,0.005),
-                         n.minobsinnode = c(1,10))
-set.seed(1107)
-gbmA.fit <- train(stroke ~ . , 
-                  stroke_df_no_na_ROSE, 
-                  subset = trRows, 
-                  tuneGrid = gbmA.grid,
-                  trControl = ctrl,
-                  method = "gbm",
-                  distribution = "adaboost",
-                  metric = "ROC",
-                  verbose = FALSE)
-                  
-
-#gbm ada
-gbmA.grid.norose <- expand.grid(n.trees = c(2000,3000,4000),
-                         interaction.depth = 1:6,
-                         shrinkage = c(0.001,0.003,0.005),
-                         n.minobsinnode = c(1,10))
-set.seed(1107)
-gbmA.fit.norose <- train(stroke ~ . , 
-                  stroke_df_no_na, 
-                  subset = trRows, 
-                  tuneGrid = gbmA.grid.norose,
-                  trControl = ctrl,
-                  method = "gbm",
-                  distribution = "adaboost",
-                  metric = "ROC",
-                  verbose = FALSE)
-```
-
-
+--edit for which vars are included
+--short conclusion
 
                   
