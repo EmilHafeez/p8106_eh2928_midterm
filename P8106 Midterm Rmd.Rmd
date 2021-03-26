@@ -91,13 +91,6 @@ stroke_df_no_na =
   dplyr::select(stroke, age, avg_glucose_level, bmi, everything())
 ```
 
-```{r matrix inputs,include=F}
-# matrix of predictors
-x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
-#vector of response
-y = stroke_df_no_na$stroke
-```
-
 ```{r include = F}
 summary(stroke_df)
 ```
@@ -199,20 +192,27 @@ corrplot(cor(x), method = "square", type = "upper")
 It is clear from EDA that average glucose level is not normally distributed, exhibiting a bell-like curve near 100 units, but also a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity).
 
 # Section 3: Models (Biggest section!!)
-```{r address imbalance, include=F}
-table(stroke_df_no_na$stroke)
 
+```{r address imbalance, include=F}
 stroke_df_no_na_ROSE = ROSE(
                             stroke ~ . , 
                             data = stroke_df_no_na,
                             p = 0.5, 
-                            seed(1107)
-)
+                            seed = 1107
+                            )$data
+
+```
+
+```{r}
+# matrix of predictors
+x = model.matrix(stroke ~ ., stroke_df_no_na_ROSE)[,-1]
+#vector of response
+y = stroke_df_no_na_ROSE$stroke
 ```
 
 ```{r training selection object, include = F}
 set.seed(1107)
-trRows <- createDataPartition(stroke_df_no_na$stroke,
+trRows <- createDataPartition(stroke_df_no_na_ROSE$stroke,
                               p = .75,
                               list = F)
 ```
@@ -226,6 +226,7 @@ ctrl <- trainControl(method = "cv",
 ```
 
 ```{r modeling approaches and graphs, include = F, cache = T}
+
 #ranger rf
 set.seed(1107)
 ctrl <- trainControl(method = "cv",
@@ -234,10 +235,10 @@ ctrl <- trainControl(method = "cv",
 #rf
 rf.grid <- expand.grid(mtry = 1:11,
                        splitrule = "gini",
-                       min.node.size = seq(from = 200, to = 300, by = 5))
+                       min.node.size = seq(from = 10, to = 100, by = 10))
 set.seed(1107)
 rf.fit <- train(stroke ~ . , 
-                stroke_df_no_na, 
+                stroke_df_no_na_ROSE, 
                 subset = trRows,
                 method = "ranger",
                 importance = "permutation",
@@ -247,33 +248,54 @@ rf.fit <- train(stroke ~ . ,
 #coninf tree
 set.seed(1107)
 ctree.fit <- train(stroke ~ . , 
-                   stroke_df_no_na, 
+                   stroke_df_no_na_ROSE, 
                    subset = trRows,
                    method = "ctree",
-                   tuneGrid = data.frame(mincriterion = 1-exp(seq(-10, -1, length = 50))),
+                   tuneGrid = data.frame(mincriterion = seq(0, 1, length = 10)),
                    metric = "ROC",
                    trControl = ctrl)
-#gbm
-set.seed(1107)
-gbm.grid <- expand.grid(n.trees = c(2000,3000,4000),
-                        interaction.depth = 1:4,
-                        shrinkage = c(0.001,0.003,0.005),
-                        n.minobsinnode = c(1,5,10))
-gbm.fit <- train(stroke ~ . , 
-                 stroke_df_no_na, 
-                 subset = trRows,
-                 method = "gbm",
-                 tuneGrid = gbm.grid,
-                 trControl = ctrl,
-                 verbose = FALSE)
+
+## Ridge 
+# matrix of predictors (glmnet uses input matrix)
+x <- stroke_df_no_na_ROSE[trRows,]
+# vector of response
+y <- stroke_df_no_na_ROSE$stroke[trRows]
+#`alpha` is the elastic net mixing parameter. `alpha=1` is the lasso penalty, and `alpha=0` the ridge penalty. `glmnet()` function standardizes the independent variables by default (The coefficients are always returned on the original scale). 
+
+# fit the ridge regression (alpha = 0) with a sequence of lambdas
+ridge.mod <- glmnet(x = x, y = y, 
+                    standardize = TRUE,
+                    alpha = 0, 
+                    lambda = exp(seq(10, -2, length = 100)))
+
+ridge.fit <- train(x, y,
+                   method = "glmnet",
+                   tuneGrid = expand.grid(alpha = 0, 
+                                          lambda = exp(seq(10, -2, length=100))),
+                   # preProc = c("center", "scale"),
+                   trControl = ctrl1)
+
+plot(ridge.fit, xTrans = log)
+
+ridge.fit$bestTune
+
+# coefficients in the final model
+coef(ridge.fit$finalModel, s = ridge.fit$bestTune$lambda)
+
+
+
+
+
+
+
 #gbm ada
 gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
                          interaction.depth = 1:6,
                          shrinkage = c(0.001,0.003,0.005),
-                         n.minobsinnode = 1)
+                         n.minobsinnode = c(1,10))
 set.seed(1107)
 gbmA.fit <- train(stroke ~ . , 
-                  stroke_df_no_na, 
+                  stroke_df_no_na_ROSE, 
                   subset = trRows, 
                   tuneGrid = gbmA.grid,
                   trControl = ctrl,
@@ -317,15 +339,15 @@ bwplot(res, metric = "ROC")
 ```
 Regarding the testing data performance,
 ```{r modeling 4 test performance, include = F}
-rf.pred <- predict(rf.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-gbm.pred <- predict(gbm.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
-gbmA.pred <- predict(gbmA.fit, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+rf.pred <- predict(rf.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+gbm.pred <- predict(gbm.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+gbmA.pred <- predict(gbmA.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 
-roc.rf <- roc(stroke_df_no_na$stroke[-trRows], rf.pred)
-roc.ctree <- roc(stroke_df_no_na$stroke[-trRows], ctree.pred)
-roc.gbm <- roc(stroke_df_no_na$stroke[-trRows], gbm.pred)
-roc.gbmA <- roc(stroke_df_no_na$stroke[-trRows], gbmA.pred)
+roc.rf <- roc(stroke_df_no_na_ROSE$stroke[-trRows], rf.pred)
+roc.ctree <- roc(stroke_df_no_na_ROSE$stroke[-trRows], ctree.pred)
+roc.gbm <- roc(stroke_df_no_na_ROSE$stroke[-trRows], gbm.pred)
+roc.gbmA <- roc(stroke_df_no_na_ROSE$stroke[-trRows], gbmA.pred)
 
 auc <- c(roc.rf$auc[1], roc.ctree$auc[1], roc.gbm$auc[1],
          roc.gbmA$auc[1])
@@ -378,37 +400,22 @@ All of these methods can be limited in their interpretability; while their flexi
 4. Giles, MF. Rothwell, PM. 2007. Risk of stroke early after transient ischaemic attack: a systematic review and meta-analysis. Neurology. 6:12, 1063-1072, doi: 10.1016/S1474-4422(07)70274-0. 
 
 #Section 666: OPEN QUESTIONS
-How to deal with this imbalanced data? Consider adding to data cleaning steps
-Exactly the same AUC values but different curves -- is this a caret specification?
+# Questions for office hours
+
+
 WHICH OF THE EDA PLOTS TO KEEP IN THE REPORT?
-implement ROSE.
-do i need to be inputting a matrix or selecting the outcome for caret?
-ctree minimum criteria unstable; just selects lowest value
-ADD NEEDEDING TO REBALANCE USING ROSE
 
-
-what about:
-```{r modeling 2, include = F}
-#from lecture 10
-#qda
-#knn
-knn.fit <- train(stroke_df_no_na[,2:11],
-                   stroke_df_no_na,
-                   subset = trRows,
-                   method = "knn",
-                   preProcess = c("center","scale"),
-                   metric = "ROC",
-                   tuneGrid = data.frame(k = seq(1,200,by=10)),
-                   trControl = ctrl)
-
-ggplot(knn.fit, highlight = TRUE)
-
-```
-Or, the SVM?
-
-
-NOW:
 -wait for finish model fitting. check resample and auc.
 -implement ROSE, plot the changes, change the model fitting using new dataset
 -rerun model fitting
--check variable importances are the same from the extraciton method and the permutation setting are the same.
+
+
+NOW:
+
+
+--take out gbm
+--add ridge
+--compare ROSE training and regular training
+--
+-check variable importances are the same from the extraction method and the permutation setting are the same.
+
