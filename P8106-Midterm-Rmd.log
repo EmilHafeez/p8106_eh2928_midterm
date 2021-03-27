@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.999992 (TeX Live 2020) (preloaded format=xelatex 2021.2.11)  23 MAR 2021 22:37
+This is XeTeX, Version 3.14159265-2.6-0.999992 (TeX Live 2020) (preloaded format=xelatex 2021.2.11)  27 MAR 2021 15:18
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -369,6 +369,21 @@ Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
 \Gm@layouthoffset=\dimen161
 \Gm@layoutvoffset=\dimen162
 \Gm@dimlist=\toks22
+) (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/fancyvrb/fancyvrb.sty
+Package: fancyvrb 2021/01/20 v3.7 verbatim text (tvz,hv)
+\FV@CodeLineNo=\count294
+\FV@InFile=\read2
+\FV@TabBox=\box51
+\c@FancyVerbLine=\count295
+\FV@StepNumber=\count296
+\FV@OutFile=\write3
+) (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/framed/framed.sty
+Package: framed 2011/10/22 v 0.96: framed or shaded text with page breaks
+\OuterFrameSep=\skip53
+\fb@frw=\dimen163
+\fb@frh=\dimen164
+\FrameRule=\dimen165
+\FrameSep=\dimen166
 ) (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/graphics/graphicx.sty
 Package: graphicx 2020/09/09 v1.2b Enhanced LaTeX Graphics (DPC,SPQR)
 (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/graphics/graphics.sty
@@ -382,8 +397,8 @@ File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
 )
 Package graphics Info: Driver file: xetex.def on input line 105.
 )
-\Gin@req@height=\dimen163
-\Gin@req@width=\dimen164
+\Gin@req@height=\dimen167
+\Gin@req@width=\dimen168
 ) (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/grffile/grffile.sty
 Package: grffile 2019/11/11 v2.1 Extended file name support for graphics (legac
 y)
@@ -392,56 +407,60 @@ line 40.
 ) (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty
 Package: fancyhdr 2021/01/28 v4.0.1 Extensive control of page headers and foote
 rs
-\f@nch@headwidth=\skip53
-\f@nch@O@elh=\skip54
-\f@nch@O@erh=\skip55
-\f@nch@O@olh=\skip56
-\f@nch@O@orh=\skip57
-\f@nch@O@elf=\skip58
-\f@nch@O@erf=\skip59
-\f@nch@O@olf=\skip60
-\f@nch@O@orf=\skip61
+\f@nch@headwidth=\skip54
+\f@nch@O@elh=\skip55
+\f@nch@O@erh=\skip56
+\f@nch@O@olh=\skip57
+\f@nch@O@orh=\skip58
+\f@nch@O@elf=\skip59
+\f@nch@O@erf=\skip60
+\f@nch@O@olf=\skip61
+\f@nch@O@orf=\skip62
 ) (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/lipsum/lipsum.sty
 Package: lipsum 2019/01/02 v2.2 150 paragraphs of Lorem Ipsum dummy text
 (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/lipsum/lipsum.ltd.tex
 File: lipsum.ltd.tex 2019/01/02 v2.2 The Lorem ipsum dummy text
-)) (./P8106-Midterm-Rmd.aux)
+)) (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/etoolbox/etoolbox.st
+y
+Package: etoolbox 2020/10/05 v2.5k e-TeX tools for LaTeX (JAW)
+\etb@tempcnta=\count297
+) (./P8106-Midterm-Rmd.aux)
 \openout1 = `P8106-Midterm-Rmd.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 121.
+LaTeX Font Info:    ... okay on input line 121.
 LaTeX Font Info:    Overwriting math alphabet `\mathrm' in version `normal'
-(Font)                  OT1/lmr/m/n --> TU/lmr/m/n on input line 72.
+(Font)                  OT1/lmr/m/n --> TU/lmr/m/n on input line 121.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/lmr/m/it --> TU/lmr/m/it on input line 72.
+(Font)                  OT1/lmr/m/it --> TU/lmr/m/it on input line 121.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/lmr/bx/n --> TU/lmr/bx/n on input line 72.
+(Font)                  OT1/lmr/bx/n --> TU/lmr/bx/n on input line 121.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/lmss/m/n --> TU/lmss/m/n on input line 72.
+(Font)                  OT1/lmss/m/n --> TU/lmss/m/n on input line 121.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/lmss/bx/n --> TU/lmss/bx/n on input line 72.
+(Font)                  OT1/lmss/bx/n --> TU/lmss/bx/n on input line 121.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/lmtt/m/n --> TU/lmtt/m/n on input line 72.
+(Font)                  OT1/lmtt/m/n --> TU/lmtt/m/n on input line 121.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/lmtt/m/n --> TU/lmtt/bx/n on input line 72.
+(Font)                  OT1/lmtt/m/n --> TU/lmtt/bx/n on input line 121.
 
 Package fontspec Info: latinmodern-math scale = 0.9999964596882403.
 
@@ -470,7 +489,7 @@ pt=math;language=dflt;"
 (fontspec)             - 'bold small caps'  (b/sc) with NFSS spec.: 
 
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(0)/m/n' will be
-(Font)              scaled to size 10.0pt on input line 72.
+(Font)              scaled to size 10.0pt on input line 121.
 
 Package fontspec Info: latinmodern-math scale = 0.9999964596882403.
 
@@ -509,17 +528,18 @@ pt=math;language=dflt;"
 (fontspec)             - 'bold small caps'  (b/sc) with NFSS spec.: 
 
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 10.0pt on input line 72.
+(Font)              scaled to size 10.0pt on input line 121.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `normal' on input line 72.
+(Font)              `operators' in the math version `normal' on input line 121.
+
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  OT1/lmr/m/n --> TU/latinmodern-math.otf(1)/m/n on input
- line 72.
+ line 121.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `bold' on input line 72.
+(Font)              `operators' in the math version `bold' on input line 121.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  OT1/lmr/bx/n --> TU/latinmodern-math.otf(1)/b/n on inpu
-t line 72.
+t line 121.
 
 Package fontspec Info: latinmodern-math scale = 0.9999964596882403.
 
@@ -606,15 +626,15 @@ t=math;language=dflt;"
 (fontspec)             \fontdimen 21\font =0pt\relax 
 
 LaTeX Font Info:    Encoding `OMS' has changed to `TU' for symbol font
-(Font)              `symbols' in the math version `normal' on input line 72.
+(Font)              `symbols' in the math version `normal' on input line 121.
 LaTeX Font Info:    Overwriting symbol font `symbols' in version `normal'
 (Font)                  OMS/lmsy/m/n --> TU/latinmodern-math.otf(2)/m/n on inpu
-t line 72.
+t line 121.
 LaTeX Font Info:    Encoding `OMS' has changed to `TU' for symbol font
-(Font)              `symbols' in the math version `bold' on input line 72.
+(Font)              `symbols' in the math version `bold' on input line 121.
 LaTeX Font Info:    Overwriting symbol font `symbols' in version `bold'
 (Font)                  OMS/lmsy/b/n --> TU/latinmodern-math.otf(2)/b/n on inpu
-t line 72.
+t line 121.
 
 Package fontspec Info: latinmodern-math scale = 0.9999964596882403.
 
@@ -683,18 +703,18 @@ pt=math;language=dflt;"
 (fontspec)             =6.0pt\relax \fontdimen 13\font =0pt\relax 
 
 LaTeX Font Info:    Encoding `OMX' has changed to `TU' for symbol font
-(Font)              `largesymbols' in the math version `normal' on input line 7
-2.
+(Font)              `largesymbols' in the math version `normal' on input line 1
+21.
 LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `normal'
 (Font)                  OMX/lmex/m/n --> TU/latinmodern-math.otf(3)/m/n on inpu
-t line 72.
+t line 121.
 LaTeX Font Info:    Encoding `OMX' has changed to `TU' for symbol font
-(Font)              `largesymbols' in the math version `bold' on input line 72.
-
+(Font)              `largesymbols' in the math version `bold' on input line 121
+.
 LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `bold'
 (Font)                  OMX/lmex/m/n --> TU/latinmodern-math.otf(3)/b/n on inpu
-t line 72.
-Package hyperref Info: Link coloring OFF on input line 72.
+t line 121.
+Package hyperref Info: Link coloring OFF on input line 121.
 (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2021-04-02 v2.47 Cross-referencing by name of section
 (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/refcount/refcount.sty
@@ -704,14 +724,14 @@ Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
 lestring.sty
 Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 )
-\c@section@level=\count294
+\c@section@level=\count298
 )
-LaTeX Info: Redefining \ref on input line 72.
-LaTeX Info: Redefining \pageref on input line 72.
-LaTeX Info: Redefining \nameref on input line 72.
+LaTeX Info: Redefining \ref on input line 121.
+LaTeX Info: Redefining \pageref on input line 121.
+LaTeX Info: Redefining \nameref on input line 121.
 (./P8106-Midterm-Rmd.out) (./P8106-Midterm-Rmd.out)
-\@outlinefile=\write3
-\openout3 = `P8106-Midterm-Rmd.out'.
+\@outlinefile=\write4
+\openout4 = `P8106-Midterm-Rmd.out'.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
@@ -721,15 +741,15 @@ LaTeX Info: Redefining \nameref on input line 72.
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
 * modes: 
-* h-part:(L,W,R)=(73.12378pt, 468.04744pt, 73.12378pt)
-* v-part:(T,H,B)=(73.12378pt, 648.72243pt, 73.12378pt)
+* h-part:(L,W,R)=(44.67102pt, 524.95296pt, 44.67102pt)
+* v-part:(T,H,B)=(44.67102pt, 705.62794pt, 44.67102pt)
 * \paperwidth=614.295pt
 * \paperheight=794.96999pt
-* \textwidth=468.04744pt
-* \textheight=648.72243pt
-* \oddsidemargin=0.85379pt
-* \evensidemargin=0.85379pt
-* \topmargin=-36.14621pt
+* \textwidth=524.95296pt
+* \textheight=705.62794pt
+* \oddsidemargin=-27.59897pt
+* \evensidemargin=-27.59897pt
+* \topmargin=-64.59897pt
 * \headheight=12.0pt
 * \headsep=25.0pt
 * \topskip=10.0pt
@@ -748,35 +768,35 @@ LaTeX Info: Redefining \nameref on input line 72.
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 12.0pt on input line 74.
+(Font)              scaled to size 12.0pt on input line 123.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 8.0pt on input line 74.
+(Font)              scaled to size 8.0pt on input line 123.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 6.0pt on input line 74.
-LaTeX Font Info:    Trying to load font information for OML+lmm on input line 7
-4.
+(Font)              scaled to size 6.0pt on input line 123.
+LaTeX Font Info:    Trying to load font information for OML+lmm on input line 1
+23.
 (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/lm/omllmm.fd
 File: omllmm.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 12.0011pt on input line 74.
+(Font)              scaled to size 12.0011pt on input line 123.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 8.00073pt on input line 74.
+(Font)              scaled to size 8.00073pt on input line 123.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 6.00055pt on input line 74.
+(Font)              scaled to size 6.00055pt on input line 123.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 11.99872pt on input line 74.
+(Font)              scaled to size 11.99872pt on input line 123.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 7.99915pt on input line 74.
+(Font)              scaled to size 7.99915pt on input line 123.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 5.99936pt on input line 74.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 74.
-
+(Font)              scaled to size 5.99936pt on input line 123.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 123
+.
 (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 74.
-
+LaTeX Font Info:    Trying to load font information for U+msb on input line 123
+.
 (/Users/emilhafeez/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (./P8106-Midterm-Rmd.toc
@@ -797,37 +817,53 @@ LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
 (Font)              scaled to size 4.99947pt on input line 3.
 )
-\tf@toc=\write4
-\openout4 = `P8106-Midterm-Rmd.toc'.
+\tf@toc=\write5
+\openout5 = `P8106-Midterm-Rmd.toc'.
 
 [1
 
 ]
-Underfull \hbox (badness 1803) in paragraph at lines 110--114
-[]\TU/lmr/m/n/10 While limited information is provided by the data source, this
- dataset is thought to consider
+File: P8106-Midterm-Rmd_files/figure-latex/included plot 1-1.pdf Graphic file (
+type pdf)
+<use P8106-Midterm-Rmd_files/figure-latex/included plot 1-1.pdf>
+[2]
+File: P8106-Midterm-Rmd_files/figure-latex/unnamed-chunk-3-1.pdf Graphic file (
+type pdf)
+<use P8106-Midterm-Rmd_files/figure-latex/unnamed-chunk-3-1.pdf>
+
+Underfull \hbox (badness 10000) in paragraph at lines 260--268
+[][] \TU/lmr/m/n/10 Regarding
  []
 
-[2]
+File: P8106-Midterm-Rmd_files/figure-latex/roc plotting-1.pdf Graphic file (typ
+e pdf)
+<use P8106-Midterm-Rmd_files/figure-latex/roc plotting-1.pdf>
+[3]
+LaTeX Font Info:    Font shape `TU/lmtt/bx/n' in size <10> not available
+(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 284.
+File: P8106-Midterm-Rmd_files/figure-latex/unnamed-chunk-4-1.pdf Graphic file (
+type pdf)
+<use P8106-Midterm-Rmd_files/figure-latex/unnamed-chunk-4-1.pdf>
+[4] [5]
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 34.65004pt, for example:
-(fancyhdr)                \setlength{\headheight}{34.65004pt}.
+(fancyhdr)                Make it at least 23.10004pt, for example:
+(fancyhdr)                \setlength{\headheight}{23.10004pt}.
 (fancyhdr)                You might also make \topmargin smaller to compensate:
 
-(fancyhdr)                \addtolength{\topmargin}{-22.65004pt}.
+(fancyhdr)                \addtolength{\topmargin}{-11.10004pt}.
 
-[3] (./P8106-Midterm-Rmd.aux)
+[6] (./P8106-Midterm-Rmd.aux)
 Package rerunfilecheck Info: File `P8106-Midterm-Rmd.out' has not changed.
-(rerunfilecheck)             Checksum: 4DE3295B424FD23870B02D67DBFA8E29;7454.
+(rerunfilecheck)             Checksum: 3A3371C3BAEC65CABF37E0FFF1B232D8;1940.
  ) 
 Here is how much of TeX's memory you used:
- 16039 strings out of 479210
- 289651 string characters out of 5873698
- 836345 words of memory out of 5000000
- 35399 multiletter control sequences out of 15000+600000
- 409841 words of font info for 75 fonts, out of 8000000 for 9000
+ 16843 strings out of 479210
+ 301110 string characters out of 5873698
+ 855318 words of memory out of 5000000
+ 36179 multiletter control sequences out of 15000+600000
+ 409865 words of font info for 78 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 98i,11n,122p,1606b,356s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 98i,11n,122p,834b,353s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on P8106-Midterm-Rmd.pdf (3 pages).
+Output written on P8106-Midterm-Rmd.pdf (6 pages).
