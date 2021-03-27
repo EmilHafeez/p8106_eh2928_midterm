@@ -1,7 +1,9 @@
 ---
 title: "Predicting Stroke Outcomes and Investigating Oversampling Prediction using Random Forests, Conditional Inference Trees, Ridge Regression, and Gradient Boosting"
 subtitle: 'P8106 Data Science 2 Midterm'
-author: "Emil Hafeez, eh2928"
+author: 
+  -"Emil Hafeez, eh2928"
+  -"eh2928"
 geometry: "left=1.57cm,right=1.57cm,top=1.57cm,bottom=1.57cm"
 output:
   pdf_document:
@@ -172,27 +174,23 @@ y = stroke_df_no_na$stroke
 corrplot(cor(x), method = "square", type = "upper")
 ```
 It is clear from EDA that average glucose level is not normally distributed, with a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity). To get a sense of the data, see below. Notice the higher ages of those with stroke outcomes in this plot, as well as the distribution of bmi and glucose level (including some extreme values). The correlation plot is also printed.
-```{r included plot 1, echo = F}
+
+```{r plottingincludeds, fig.align='center', fig.width=6, echo = F}
 stroke_df_no_na$stroke_labs = factor(stroke_df_no_na$stroke)
 stroke_df_no_na$stroke_labs = factor(
                                       stroke_df_no_na$stroke, 
                                       levels = c("X0", "X1"), 
                                       labels = c("No Stroke", "Stroke"))
 
-(p5 + p7 + p6) + plot_annotation(
-  title = 'Age, glucose, gender, and stroke outcomes',
-  subtitle = 'Boxplot of distributions, grouped',
-  caption = 'Notice the relative similarity of age and glucose level between genders but much higher age among those with stroke outcomes'
-)
-
-(p9) + plot_annotation(
-  title = 'Average glucose level and BMI, with age, across outcome levels',
-  subtitle = 'boxplots and scatterplots',
-  caption = 'Notice here also the older ages among those with stroke outcomes, though no glaring BMI/glucose differences'
+(p5 + p7 + p6) / (p9) + plot_annotation(
+  title = 'Age, glucose, gender, BMI, and stroke outcomes',
+  subtitle = 'Boxplot of grouped distributions, over scatter plot of bmi vs glucose and colored by age',
+  caption = 'Notice higher age among those with stroke outcomes, otherwise similar'
 )
 ```
+
 Regarding the correlation of predictors, please see the following.
-```{r corrplot, echo = F}
+```{r corrplot, fig.align='center', fig.width=6, echo = F}
 corrplot(cor(x), method = "square", type = "upper")
 ```
 
@@ -377,7 +375,7 @@ All variables from the dataset are included in modeling other than the arbitrary
 This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, ridge regression, and xgboost (gradient boosting). Several of these methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors (though ridge regression makes the same assumptions are MLR: linearity, constant variance, and independence). Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF). Gradient boosting are used to address the limits of bagging, using weak classifiers and weighting to find best fits and combine classifiers, assuming that observations are independent, and sometimes assumptions about the interaction depth (though this is tuned here).
 
 All models have tuning parameters, and xgboost in particular has many of them. These were tuned using cross-validation, initially using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more density. A visualization of the random forest tuning can be seen here:
-```{r, fig.align='center', echo = F, warning = F}
+```{r, fig.align='center', fig.width=6, echo = F, warning = F}
 ggplot(rf.fit, highlight = TRUE) +
   labs(
     title = "Random Forests Tuning",
