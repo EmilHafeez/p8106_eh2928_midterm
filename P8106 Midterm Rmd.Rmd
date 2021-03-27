@@ -182,7 +182,7 @@ stroke_df_no_na =
   select(-stroke_labs)
 ```
 
-```{r}
+```{r, include = F}
 # matrix of predictors
 x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
 #vector of response
@@ -205,7 +205,7 @@ stroke_df_no_na_ROSE = ROSE(
                             )$data
 ```
 
-```{r}
+```{r, include = F}
 # matrix of predictors
 x = model.matrix(stroke ~ ., stroke_df_no_na_ROSE)[,-1]
 #vector of response
@@ -264,7 +264,7 @@ ridge.fit <- train(stroke ~ . ,
                    stroke_df_no_na_ROSE,
                    method = "glmnet",
                    tuneGrid = expand.grid(alpha = 0, 
-                                          lambda = seq(10, -10, length=100)),
+                                          lambda = seq(-1, 1, length=100)),
                    # preProc = c("center", "scale"),
                    trControl = ctrl)
 #plot(ridge.fit, xTrans = log)
@@ -299,7 +299,7 @@ ggplot(ridge.fit, highlight = TRUE)
 ggplot(xgboost.fit, highlight = TRUE)
 ```
 
-```{r}
+```{r, include = F}
 #no label is ROSE, next will be labeled 2 with ROSE
 set.seed(1107)
 ctrl <- trainControl(method = "cv",
@@ -336,7 +336,7 @@ ridge.fit.norose <- train(stroke ~ . ,
                    stroke_df_no_na,
                    method = "glmnet",
                    tuneGrid = expand.grid(alpha = 0, 
-                                          lambda = seq(10, -10, length=100)),
+                                          lambda = seq(-1, 1, length=100)),
                    # preProc = c("center", "scale"),
                    trControl = ctrl)
 #plot(ridge.fit, xTrans = log)
@@ -454,17 +454,17 @@ legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)), col = 1:8
 
 Variable importance is computed by permutations, implemented during model training. Having extracted these results from each model, one can see there is relative consistency between approaches as to which variables are most important: age, average glucose level, hypertension, currently smokes, and BMI.
 
-```{r}
+```{r, include = F}
 ## add variable importance 
 varImp(rf.fit)
-varImp(ctree.fit)
 
-#For importance scores generated from varImp.train, a plot method can be used to visualize the results. In the plot below, the top option is used to make the image more readable.
-plot(gbmImp, top = 20)
+barplot(sort(ranger::importance(rf.fit), decreasing = FALSE), 
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan","blue"))(19))
 
-#Variable importance from boosting can be obtained using the `summary()` function.
-summary(gbm.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
-summary(gbmA.fit$finalModel, las = 2, cBars = 19, cex.names = 0.6)
+barplot(sort(ranger::importance(rf.fit.norose), decreasing = FALSE), 
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan","blue"))(19))
 ```
 
 ## What are the limitations of the models you used (if there are any)? Are the models flexible enough to capture the underlying truth?
