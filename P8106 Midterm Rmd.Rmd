@@ -1,6 +1,6 @@
 ---
-title: "P8106 Data Science 2 Midterm"
-subtitle: 'Predicting Stroke Outcomes and Investigating Oversampling Prediction using Random Forests, Conditional Inference Trees, Ridge Regression, and Gradient Boosting'
+title: "Predicting Stroke Outcomes and Investigating Oversampling Prediction using Random Forests, Conditional Inference Trees, Ridge Regression, and Gradient Boosting"
+subtitle: 'P8106 Data Science 2 Midterm'
 author: "Emil Hafeez, eh2928"
 geometry: "left=1.57cm,right=1.57cm,top=1.57cm,bottom=1.57cm"
 output:
@@ -19,7 +19,7 @@ header-includes:
 - \fancyhead[R]{\thepage}
 - \fancypagestyle{plain}{\pagestyle{fancy}}
 --- 
-```{r libraries, include = F, cache = T}
+```{r libraries, include = F}
 library(caret) 
 library(klaR)
 library(ggplot2)
@@ -31,7 +31,6 @@ library(tidyverse)
 ```
 
 ```{r opts chunk, include = F}
-knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
 knitr::opts_chunk$set(echo = TRUE)
 
 options(
@@ -172,24 +171,34 @@ x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
 y = stroke_df_no_na$stroke
 corrplot(cor(x), method = "square", type = "upper")
 ```
-## What were your findings?
-It is clear from EDA that average glucose level is not normally distributed, with a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity). To get a sense of the data, see below. Notice the higher ages of those with stroke outcomes in this plot, as well as the distribution of bmi and glucose level (including some extreme values).
-```{r included plot 1, echo = F, cache = T}
+It is clear from EDA that average glucose level is not normally distributed, with a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity). To get a sense of the data, see below. Notice the higher ages of those with stroke outcomes in this plot, as well as the distribution of bmi and glucose level (including some extreme values). The correlation plot is also printed.
+```{r included plot 1, echo = F}
 stroke_df_no_na$stroke_labs = factor(stroke_df_no_na$stroke)
 stroke_df_no_na$stroke_labs = factor(
                                       stroke_df_no_na$stroke, 
                                       levels = c("X0", "X1"), 
                                       labels = c("No Stroke", "Stroke"))
 
-(p5 + p7 + p6) | (p9) + plot_annotation(
-  title = 'Figure 1: age, glucose, bmi, and stroke outcomes',
-  subtitle = 'boxplots and scatterplots',
-  caption = 'Notice the relative similarity of age, gender, and glucose level between genders, but much higher age among those with stroke outcomes'
+(p5 + p7 + p6) + plot_annotation(
+  title = 'Age, glucose, gender, and stroke outcomes',
+  subtitle = 'Boxplot of distributions, grouped',
+  caption = 'Notice the relative similarity of age and glucose level between genders but much higher age among those with stroke outcomes'
 )
+
+(p9) + plot_annotation(
+  title = 'Average glucose level and BMI, with age, across outcome levels',
+  subtitle = 'boxplots and scatterplots',
+  caption = 'Notice here also the older ages among those with stroke outcomes, though no glaring BMI/glucose differences'
+)
+```
+Regarding the correlation of predictors, please see the following.
+```{r corrplot, echo = F}
+corrplot(cor(x), method = "square", type = "upper")
 ```
 
 # Section 3: Models
 ```{r address imbalance, include=F, cache = T}
+set.seed(1107)
 stroke_df_no_na_ROSE = ROSE(
                             stroke ~ . , 
                             data = stroke_df_no_na,
@@ -197,6 +206,7 @@ stroke_df_no_na_ROSE = ROSE(
                             seed = 1107
                             )$data
 ```
+
 ```{r, include = F}
 # matrix of predictors
 x = model.matrix(stroke ~ ., stroke_df_no_na_ROSE)[,-1]
@@ -357,7 +367,6 @@ xgboost.fit.norose <- train(stroke ~ . ,
                   metric = "ROC",
                   verbose = FALSE)
 
-
 ggplot(rf.fit.norose, highlight = TRUE)
 ggplot(ctree.fit.norose, highlight = TRUE)
 ggplot(ridge.fit.norose, highlight = TRUE)
@@ -368,7 +377,7 @@ All variables from the dataset are included in modeling other than the arbitrary
 This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, ridge regression, and xgboost (gradient boosting). Several of these methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors (though ridge regression makes the same assumptions are MLR: linearity, constant variance, and independence). Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF). Gradient boosting are used to address the limits of bagging, using weak classifiers and weighting to find best fits and combine classifiers, assuming that observations are independent, and sometimes assumptions about the interaction depth (though this is tuned here).
 
 All models have tuning parameters, and xgboost in particular has many of them. These were tuned using cross-validation, initially using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more density. A visualization of the random forest tuning can be seen here:
-```{r, echo = F, cache = T}
+```{r, fig.align='center', echo = F, warning = F}
 ggplot(rf.fit, highlight = TRUE) +
   labs(
     title = "Random Forests Tuning",
@@ -377,7 +386,7 @@ ggplot(rf.fit, highlight = TRUE) +
     caption = "Tuning grid explores minimal node size and randomly selected predictors using Gini index split rules")
 ```
 Regarding the training data performance, the random forests algorithm tuned on the oversampled data performs the highest by a relatively wide margin. All methods have ROC between 0.80 and 0.95. Overall, the more flexible and nonparametric methods perform very well. Of 8 models total (4 trained on imbalanced and 4 on ROSEd data): 3 of the top 4 were trained on the oversampled data. Training ROC performance is visualized below.
-```{r modeling 3 comparison, include = F, cache = T}
+```{r modeling 3 comparison, include = F}
 res <- resamples(list(
                       rf = rf.fit,
                       ctree = ctree.fit,
@@ -394,7 +403,7 @@ summary(res)
 bwplot(res, metric = "ROC")
 ```
 Testing data performance can be seen below, split into 2 plots to accomodate the maximum of plot.roc(). 
-```{r modeling 4 test performance, include = F, cache = T}
+```{r modeling 4 test performance, include = F}
 rf.pred <- predict(rf.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 xgboost.pred <- predict(xgboost.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
@@ -437,7 +446,7 @@ plot(roc.ridge, col = 4, add = TRUE)
 modelNames <- c("rf","ctree","xgboost","ridge")
 legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)), col = 1:4, lwd = 1)
 ```
-```{r}
+```{r roc2 plotting2, echo = F}
 #plot
 plot(roc.rf.norose, col = 5, legacy.axes = TRUE, add = F)
 plot(roc.ctree.norose, col = 6, add = TRUE)
@@ -447,7 +456,6 @@ modelNames2 <- c("rf.norose","ctree.norose","xgboost.norose","ridge.norose")
 legend("bottomright", legend = paste0(modelNames2, ": ", round(auc,3)), col = 1:8, lwd = 1)
 ```
 
-## Which variables play important roles in predicting the response?
 Variable importance is computed by permutations, implemented during model training. Focusing on the model with the most successful testing performance (rf), we see age as the most important variable by far, followed by average glucose level, hypertension, bmi, and every married. Having extracted these results from each model, one can see there is variability between model approaches as to the order of variable importance, and the distance between each variable. Even between the RF and the RF trained on the imbalanced data, we see that average glucose level is much more important in the former than the latter.
 ```{r var imp, include = F, cache = T}
 ## add variable importance 
@@ -459,13 +467,18 @@ varImp(rf.fit.norose)
 varImp(xgboost.fit.norose)
 varImp(ridge.fit.norose)
 ```
-## What are the limitations of the models you used (if there are any)? Are the models flexible enough to capture the underlying truth?
+
 All of these methods (other than perhaps ride regression) are limited in their interpretability; while their flexibility is particularly useful for underlying complex truths, they are black-box methods where we have limited control over the models' findings and interpretation. Since, generally speaking, bagging methods reduce variance by applying the same algorithm to a bootstrapped sample (sampling with replacement), and boosting can help to reduce bias by weighting weak learners, it is wise to apply both to better pursue the underlying truth. We know due to the bias-variance tradeoff that these characteristics are in tension, and seek to capture the underlying truth by examining both options separately.
+
 # Section 4: Conclusions
-## What were your findings? Are they what you expect? What insights into the data can you make?
+
 Interestingly, the methods are quite successful at classifying testing observations into the correct classes, as evidenced by the ROC curves. Random forests performs very well. Highly flexible methods were useful to accommodate the number of categorical predictors, though the age predictor (numeric), is evidenced as the most important predictor. Oversampling techniques were investigated, and the models 
+
 #Section 5: Bibliography
 1. Boehme, AK, Esenwa, C, & Elkind, MSV. Stroke risk factors, genetics, and prevention. Circulation Research. 2017; Retrieved 3/24/2021, from https://www.ahajournals.org/doi/full/10.1161/CIRCRESAHA.116.308398 
+
 2. Roger VL, Go AS, Lloyd-Jones DM, et al.; American Heart Association Statistics Committee and Stroke Statistics Subcommittee. Heart disease and stroke statistics–2011 update: a report from the American Heart Association. Circulation. 2011; 123:e18–e209. doi: 10.1161/CIR.0b013e3182009701.
+
 3. Howard VJ, Kleindorfer DO, Judd SE, McClure LA, Safford MM, Rhodes JD, Cushman M, Moy CS, Soliman EZ, Kissela BM, Howard G. Disparities in stroke incidence contributing to disparities in stroke mortality. Annals of Neurol. 2011; 69:619–627. doi: 10.1002/ana.22385
+
 4. Giles, MF. Rothwell, PM. 2007. Risk of stroke early after transient ischaemic attack: a systematic review and meta-analysis. Neurology. 6:12, 1063-1072, doi: 10.1016/S1474-4422(07)70274-0. 
