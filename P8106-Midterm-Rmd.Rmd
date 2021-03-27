@@ -1,0 +1,481 @@
+---
+title: "Predicting Stroke Outcomes and Investigating Oversampling Prediction using Random Forests, Conditional Inference Trees, Ridge Regression, and Gradient Boosting"
+subtitle: 'P8106 Data Science 2 Midterm'
+author: 
+  -"Emil Hafeez, eh2928"
+  -"eh2928"
+geometry: "left=1.57cm,right=1.57cm,top=1.57cm,bottom=1.57cm"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: yes
+    toc_depth: 3
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+header-includes:
+- \usepackage{fancyhdr}
+- \usepackage{lipsum}
+- \pagestyle{fancy}
+- \fancyhead[R]{\thepage}
+- \fancypagestyle{plain}{\pagestyle{fancy}}
+--- 
+```{r libraries, include = F}
+library(caret) 
+library(klaR)
+library(ggplot2)
+library(patchwork)
+library(pROC)
+library(corrplot)
+library(ROSE)
+library(tidyverse)
+```
+
+```{r opts chunk, include = F}
+knitr::opts_chunk$set(echo = TRUE)
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis",
+  ggplot2.discrete.colour = "viridis",
+  ggplot2.discrete.fill = "viridis"
+)
+```
+# Section 1: Introduction
+This dataset contains 5110 observations, with de-identified individual patients as the unit of analysis. Each patient is characterized by their ID, and a set of numerical and factor variables detailing basic demographic and biomedical information, like their gender, age, and average glucose level. The outcome of interest is a binary indicator of stroke. There is no information regarding prior stroke history. While limited information is provided by the data source, this dataset is thought to consider both ischemic and hemorrhagic types of stroke as stroke outcome. These stroke outcomes are both very severe, and very prevalent; stroke is the leading cause of long-term adult disability and the fifth leading cause of death in the United States\(^{1,2}\). Race-ethnicity is also significantly associated with stroke incidence (though not included in this dataset), thereby making investigation a racial justice concern as well.\(^3\). As such a major source of disease, stroke is also quite expensive, estimated at about $34 billion per year due to healthcare services and missed work. As with many illnesses, earlier intervention in potential stroke patients improves outcomes. Were stroke outcomes to be predicted from a small set of predictors set as those available, it may be feasible to provide earlier intervention and preventative care, in order to avert these racial and political economic challenges. 
+
+```{r start clean, include = F, message = F, cache = T}
+stroke_df = read_csv("./data/healthcare-dataset-stroke-data.csv", na = "N/A")
+
+stroke_df = 
+  stroke_df %>% 
+  mutate(
+    id = as.factor(id),
+    gender = as.factor(gender),
+    hypertension = as.factor(hypertension),
+    heart_disease = as.factor(heart_disease),
+    ever_married = as.factor(ever_married),
+    work_type = as.factor(work_type),
+    Residence_type = as.factor(Residence_type),
+    smoking_status = as.factor(smoking_status),
+    stroke = as.factor(stroke)
+  ) %>% 
+  rename(residence_type = Residence_type) %>% 
+  dplyr::select(id, stroke, gender, age, avg_glucose_level, bmi, everything()) %>% 
+    mutate(
+    stroke = factor(stroke, labels = make.names(levels(stroke))),
+    hypertension = factor(hypertension, labels = make.names(levels(hypertension))),
+    heart_disease = factor(heart_disease, labels = make.names(levels(heart_disease)))
+  ) %>% 
+  dplyr::select(-id) %>% 
+  filter(!gender %in% c("Other")) %>% 
+  mutate(
+    gender = factor(gender)
+  )
+
+rnoaa::vis_miss(stroke_df)
+
+stroke_df_no_na = na.omit(stroke_df)
+
+stroke_df_no_na = 
+  stroke_df_no_na %>% 
+  dplyr::select(stroke, age, avg_glucose_level, bmi, everything())
+```
+
+```{r summary, include = F , cache = T}
+summary(stroke_df)
+```
+This is a public health example; the current study examines whether a moderately effective prediction of stroke outcome (as a binary classification) can be made using a minimal set of predictors, which are largely demographic and noninvasive. This makes for a classification question, in the service of another question: to what extent can such a dataset be thought of as a decision support system for medical practitioners, and/or serve towards an early-screening tool for stroke prevention and resource allocation (focusing on special precautions for those at-risk). Ideally, some insight into which of the factors are most relevant for predicting this outcome could be helpful too. 
+
+Variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. All variables were investigated for abnormal values and uncommon responses, as well as missing data. The BMI variable was missing 201 observations, which were assumed to be due to a missing-at-random and thus omitted. The smoking has "unidentified" values that could be treated as missing but are not here (without more information from data collection process). Categorical variables were also subject to some technical adjustments in order to allow usage in prediction algorithms. The caret package was used to create testing and training partitions, and some objects (such as a predictor matrix) were created for modeling purposes, as well as any necessary transformations (e.g. centering and scaling).
+
+# Section 2: Exploratory analysis/visualization
+Data summaries, pair-wise visualizations (boxplots between groups), grouped visualizations (scatter plots with continuous variables and groups), and correlation plots were used. There are many categorical variables, as well as a few nominal and ordinal variables; this presents several challenges for modeling and is a key feature of the data. Other than the missing BMI observations, it is also notable that of the 5110 original observations, only 1 marked "Other" for their gender, which limits the variability modeling can leverage in that regard. Notice also that the dataset is substantially unbalanced (249 strokes versus 4860 no strokes, before missing data removal). Therefore, this analysis also uses the ROSE package to oversample the dataset; model tuning and training is conducted on both the cleaned oversampled dataset and the imbalanced dataset, and the models are compared. "No ROSE" refers to the imbalanced dataset. 
+```{r visualization, include = F, cache = T}
+#histograms
+p2 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_histogram(aes(x = age), fill = "blue", alpha = 0.75) 
+p2
+
+p3 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_histogram(aes(x = avg_glucose_level), fill = "blue", alpha = 0.75) 
+p3
+
+p4 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_histogram(aes(x = bmi), fill = "blue", alpha = 0.75) 
+p4
+
+#boxplots
+p5 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_boxplot(aes(x = age, fill = gender), alpha = .75) 
+p5
+
+p6 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_boxplot(aes(x = age, fill = stroke), alpha = .75) +
+  scale_fill_discrete(
+                      labels=c("No Stroke", "Stroke"))
+p6
+
+p7 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_boxplot(aes(x = avg_glucose_level, fill = gender), alpha = .75) +
+  scale_fill_discrete(
+                      labels=c("No Stroke", "Stroke"))
+p7
+
+#scatters
+p1 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_point(aes(x = avg_glucose_level, y = bmi, color = age), alpha = 0.75)
+p1
+
+p8 = 
+  ggplot(data = stroke_df_no_na) +
+  geom_point(aes(x = avg_glucose_level, y = bmi, color = age, group = stroke), alpha = 0.75) +
+  facet_grid(. ~ stroke)
+p8
+
+(p2 + p3 + p4) / (p5 + p6 +p7) / (p1 | p8)
+
+stroke_df_no_na$stroke_labs = factor(stroke_df_no_na$stroke)
+stroke_df_no_na$stroke_labs = factor(
+                                      stroke_df_no_na$stroke, 
+                                      levels = c("X0", "X1"), 
+                                      labels = c("No Stroke", "Stroke"))
+
+p9 =
+  ggplot(data = stroke_df_no_na) +
+  geom_point(aes(x = avg_glucose_level, y = bmi, color = age, group = stroke_labs), alpha = 0.75) +
+  facet_grid(. ~ stroke_labs) +
+  labs(
+    title = "Distributions of Average Glucose Level vs BMI, by Stroke Outcome",
+    x = "Average Glucose Level",
+    y = "BMI",
+    caption = "Note the relative absence of younger ages among those with stroke outcomes") +
+  theme(plot.title = element_text(hjust = .5))
+p9
+
+stroke_df_no_na = 
+  stroke_df_no_na %>% 
+  select(-stroke_labs)
+```
+
+```{r, include = F, cache = T}
+# matrix of predictors
+x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
+#vector of response
+y = stroke_df_no_na$stroke
+corrplot(cor(x), method = "square", type = "upper")
+```
+It is clear from EDA that average glucose level is not normally distributed, with a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity). To get a sense of the data, see below. Notice the higher ages of those with stroke outcomes in this plot, as well as the distribution of bmi and glucose level (including some extreme values). The correlation plot is also printed.
+
+```{r plottingincludeds, fig.align='center', fig.width=6, echo = F}
+stroke_df_no_na$stroke_labs = factor(stroke_df_no_na$stroke)
+stroke_df_no_na$stroke_labs = factor(
+                                      stroke_df_no_na$stroke, 
+                                      levels = c("X0", "X1"), 
+                                      labels = c("No Stroke", "Stroke"))
+
+(p5 + p7 + p6) / (p9) + plot_annotation(
+  title = 'Age, glucose, gender, BMI, and stroke outcomes',
+  subtitle = 'Boxplot of grouped distributions, over scatter plot of bmi vs glucose and colored by age',
+  caption = 'Notice higher age among those with stroke outcomes, otherwise similar'
+)
+
+stroke_df_no_na = 
+  stroke_df_no_na %>% 
+  select(-stroke_labs)
+```
+
+Regarding the correlation of predictors, please see the following.
+```{r corrplot, fig.align='center', fig.width=6, echo = F}
+corrplot(cor(x), method = "square", type = "upper")
+```
+
+# Section 3: Models
+```{r address imbalance, include=F, cache = T}
+set.seed(1107)
+stroke_df_no_na_ROSE = ROSE(
+                            stroke ~ . , 
+                            data = stroke_df_no_na,
+                            p = 0.5, 
+                            seed = 1107
+                            )$data
+```
+
+```{r, include = F}
+# matrix of predictors
+x = model.matrix(stroke ~ ., stroke_df_no_na_ROSE)[,-1]
+#vector of response
+y = stroke_df_no_na_ROSE$stroke
+```
+
+```{r training selection object, include = F, cache = T}
+trRows <- createDataPartition(stroke_df_no_na_ROSE$stroke,
+                              p = .75,
+                              list = F)
+```
+
+```{r modeling 1, include = F, cache = T}
+# Using caret
+set.seed(1107)
+ctrl <- trainControl(method = "cv",
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE)
+```
+
+```{r modeling approaches and graphs with rose, include = F, cache = T}
+#no label is ROSE, next will be labeled 2 with ROSE
+#rf
+rf.grid <- expand.grid(mtry = 1:11,
+                       splitrule = "gini",
+                       min.node.size = seq(from = 1, to = 50, by = 5))
+set.seed(1107)
+rf.fit <- train(stroke ~ . , 
+                stroke_df_no_na_ROSE, 
+                subset = trRows,
+                method = "ranger",
+                importance = "permutation",
+                tuneGrid = rf.grid,
+                metric = "ROC",
+                trControl = ctrl)
+#coninf tree
+set.seed(1107)
+ctree.fit <- train(stroke ~ . , 
+                   stroke_df_no_na_ROSE, 
+                   subset = trRows,
+                   method = "ctree",
+                   tuneGrid = data.frame(mincriterion = seq(0, 1, length = 10)),
+                   metric = "ROC",
+                   trControl = ctrl)
+
+## Ridge
+
+# matrix of predictors (glmnet uses input matrix)
+#`alpha` is the elastic net mixing parameter. `alpha=1` is the lasso penalty, and `alpha=0` the ridge penalty. `glmnet()` function standardizes the independent variables by default (The coefficients are always returned on the original scale). 
+ridge.fit <- train(stroke ~ . , 
+                   stroke_df_no_na_ROSE,
+                   method = "glmnet",
+                   tuneGrid = expand.grid(alpha = 0, 
+                                          lambda = seq(-1, 1, length=100)),
+                   # preProc = c("center", "scale"),
+                   trControl = ctrl)
+#plot(ridge.fit, xTrans = log)
+# coefficients in the final model
+#coef(ridge.fit$finalModel, s = ridge.fit$bestTune$lambda)
+
+
+#xgboost
+xgboost.grid <- expand.grid(
+                          nrounds = seq(from = 1, to = 200, by = 20),
+                          eta = c(0.025, 0.05, 0.1, 0.3),
+                          max_depth = c(1, 2, 3, 4, 5, 6),
+                          gamma = 0,
+                          colsample_bytree = 1,
+                          min_child_weight = 1,
+                          subsample = 1
+                        )
+
+set.seed(1107)
+xgboost.fit <- train(stroke ~ . , 
+                  stroke_df_no_na_ROSE, 
+                  subset = trRows, 
+                  tuneGrid = xgboost.grid,
+                  trControl = ctrl,
+                  method = "xgbTree",
+                  metric = "ROC",
+                  verbose = FALSE)
+
+ggplot(rf.fit, highlight = TRUE)
+ggplot(ctree.fit, highlight = TRUE)
+ggplot(ridge.fit, highlight = TRUE)
+ggplot(xgboost.fit, highlight = TRUE)
+```
+
+```{r trainingnoroses, include = F, cache = T}
+#no label is ROSE, next will be labeled 2 with ROSE
+set.seed(1107)
+ctrl <- trainControl(method = "cv",
+                     classProbs = TRUE, 
+                     summaryFunction = twoClassSummary)
+#rf
+rf.grid.norose <- expand.grid(mtry = 1:11,
+                       splitrule = "gini",
+                       min.node.size = seq(from = 10, to = 100, by = 10))
+set.seed(1107)
+rf.fit.norose <- train(stroke ~ . , 
+                stroke_df_no_na, 
+                subset = trRows,
+                method = "ranger",
+                importance = "permutation",
+                tuneGrid = rf.grid.norose,
+                metric = "ROC",
+                trControl = ctrl)
+#coninf tree
+set.seed(1107)
+ctree.fit.norose <- train(stroke ~ . , 
+                   stroke_df_no_na, 
+                   subset = trRows,
+                   method = "ctree",
+                   tuneGrid = data.frame(mincriterion = seq(0, 1, length = 10)),
+                   metric = "ROC",
+                   trControl = ctrl)
+
+## Ridge
+
+# matrix of predictors (glmnet uses input matrix)
+#`alpha` is the elastic net mixing parameter. `alpha=1` is the lasso penalty, and `alpha=0` the ridge penalty. `glmnet()` function standardizes the independent variables by default (The coefficients are always returned on the original scale). 
+ridge.fit.norose <- train(stroke ~ . , 
+                   stroke_df_no_na,
+                   method = "glmnet",
+                   tuneGrid = expand.grid(alpha = 0, 
+                                          lambda = seq(-1, 1, length=100)),
+                   # preProc = c("center", "scale"),
+                   trControl = ctrl)
+#plot(ridge.fit, xTrans = log)
+# coefficients in the final model
+#coef(ridge.fit$finalModel, s = ridge.fit$bestTune$lambda)
+
+
+#xgboost
+xgboost.grid.norose <- expand.grid(
+                          nrounds = seq(from = 1, to = 200, by = 20),
+                          eta = c(0.025, 0.05, 0.1, 0.3),
+                          max_depth = c(1, 2, 3, 4, 5, 6),
+                          gamma = 0,
+                          colsample_bytree = 1,
+                          min_child_weight = 1,
+                          subsample = 1
+                        )
+
+set.seed(1107)
+xgboost.fit.norose <- train(stroke ~ . , 
+                  stroke_df_no_na_ROSE, 
+                  subset = trRows, 
+                  tuneGrid = xgboost.grid.norose,
+                  trControl = ctrl,
+                  method = "xgbTree",
+                  metric = "ROC",
+                  verbose = FALSE)
+
+ggplot(rf.fit.norose, highlight = TRUE)
+ggplot(ctree.fit.norose, highlight = TRUE)
+ggplot(ridge.fit.norose, highlight = TRUE)
+ggplot(xgboost.fit.norose, highlight = TRUE)
+```
+All variables from the dataset are included in modeling other than the arbitrary numeric identifier. No variable selection procedures prior to modeling were implemented.
+
+This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, ridge regression, and xgboost (gradient boosting). Several of these methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors (though ridge regression makes the same assumptions are MLR: linearity, constant variance, and independence). Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF). Gradient boosting are used to address the limits of bagging, using weak classifiers and weighting to find best fits and combine classifiers, assuming that observations are independent, and sometimes assumptions about the interaction depth (though this is tuned here).
+
+All models have tuning parameters, and xgboost in particular has many of them. These were tuned using cross-validation, initially using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more density. A visualization of the random forest tuning can be seen here:
+```{r, fig.align='center', fig.width=6, echo = F, warning = F}
+ggplot(rf.fit, highlight = TRUE) +
+  labs(
+    title = "Random Forests Tuning",
+    x = "Number of Randomly Selected Predictors",
+    y = "ROC (via Cross-Validation)",
+    caption = "Tuning grid explores minimal node size and randomly selected predictors using Gini index split rules")
+```
+Regarding the training data performance, the random forests algorithm tuned on the oversampled data performs the highest by a relatively wide margin. All methods have ROC between 0.80 and 0.95. Overall, the more flexible and nonparametric methods perform very well. Of 8 models total (4 trained on imbalanced and 4 on ROSEd data): 3 of the top 4 were trained on the oversampled data. Training ROC performance is visualized below.
+```{r modeling 3 comparison, include = F}
+res <- resamples(list(
+                      rf = rf.fit,
+                      ctree = ctree.fit,
+                      xgboost = xgboost.fit,
+                      ridge = ridge.fit, #norose now
+                      rf.norose = rf.fit.norose,
+                      ctree.norose = ctree.fit.norose,
+                      xgboost.norose = xgboost.fit.norose,
+                      ridge.norose = ridge.fit.norose
+                      )
+                 )
+summary(res)
+
+bwplot(res, metric = "ROC")
+```
+Testing data performance can be seen below, split into 2 plots to accomodate the maximum of plot.roc(). 
+```{r modeling 4 test performance, include = F}
+rf.pred <- predict(rf.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+xgboost.pred <- predict(xgboost.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+ridge.pred <- predict(ridge.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
+#norose
+rf.pred.norose <- predict(rf.fit.norose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+ctree.pred.norose <- predict(ctree.fit.norose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+xgboost.pred.norose <- predict(xgboost.fit.norose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+ridge.pred.norose <- predict(ridge.fit.norose, newdata = stroke_df_no_na[-trRows,], type = "prob")[,1]
+
+
+roc.rf <- roc(stroke_df_no_na_ROSE$stroke[-trRows], rf.pred)
+roc.ctree <- roc(stroke_df_no_na_ROSE$stroke[-trRows], ctree.pred)
+roc.xgboost <- roc(stroke_df_no_na_ROSE$stroke[-trRows], xgboost.pred)
+roc.ridge <- roc(stroke_df_no_na_ROSE$stroke[-trRows], ridge.pred)
+#norose
+roc.rf.norose <- roc(stroke_df_no_na$stroke[-trRows], rf.pred.norose)
+roc.ctree.norose <- roc(stroke_df_no_na$stroke[-trRows], ctree.pred.norose)
+roc.xgboost.norose <- roc(stroke_df_no_na$stroke[-trRows], xgboost.pred.norose)
+roc.ridge.norose <- roc(stroke_df_no_na$stroke[-trRows], ridge.pred.norose)
+
+auc <- c(roc.rf$auc[1], 
+         roc.ctree$auc[1], 
+         roc.xgboost$auc[1],
+         roc.ridge$auc[1], #norose now
+         roc.rf.norose$auc[1], 
+         roc.ctree.norose$auc[1], 
+         roc.xgboost.norose$auc[1],
+         roc.ridge.norose$auc[1])
+
+auc2 = cbind(auc, c("rf","ctree","xgboost","ridge","rf.norose","ctree.norose","xgboost.norose","ridge.norose"))
+```
+By order of AUC, the performance is: random forest, xgboost no ROSE, xgboost, ridge no ROSE, conditional inference tree, ridge regression, ctree no ROSE, random forest no ROSE. Interestingly, these models are quite close, and there is no clear preference for training on the imbalanced data (contrary to expectation, since training the model on the ROSE data could have been expected to perform when predicting with a new observation). 
+```{r roc plotting, echo = F}
+#plot 1
+plot(roc.rf, col = 1, legacy.axes = TRUE)
+plot(roc.ctree, col = 2, add = TRUE)
+plot(roc.xgboost, col = 3, add = TRUE)
+plot(roc.ridge, col = 4, add = TRUE)
+modelNames <- c("rf","ctree","xgboost","ridge")
+legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)), col = 1:4, lwd = 1)
+```
+```{r roc2 plotting2, echo = F}
+#plot
+plot(roc.rf.norose, col = 5, legacy.axes = TRUE, add = F)
+plot(roc.ctree.norose, col = 6, add = TRUE)
+plot(roc.xgboost.norose, col = 7, add = TRUE)
+plot(roc.ridge.norose, col = 8, add = TRUE) 
+modelNames2 <- c("rf.norose","ctree.norose","xgboost.norose","ridge.norose")
+legend("bottomright", legend = paste0(modelNames2, ": ", round(auc,3)), col = 1:8, lwd = 1)
+```
+
+Variable importance is computed by permutations, implemented during model training. Focusing on the model with the most successful testing performance (rf), we see age as the most important variable by far, followed by average glucose level, hypertension, bmi, and every married. Having extracted these results from each model, one can see there is variability between model approaches as to the order of variable importance, and the distance between each variable. Even between the RF and the RF trained on the imbalanced data, we see that average glucose level is much more important in the former than the latter.
+```{r var imp, include = F, cache = T}
+## add variable importance 
+varImp(rf.fit)
+varImp(ctree.fit)
+varImp(xgboost.fit)
+varImp(ridge.fit)
+varImp(rf.fit.norose)
+varImp(xgboost.fit.norose)
+varImp(ridge.fit.norose)
+```
+
+All of these methods (other than perhaps ride regression) are limited in their interpretability; while their flexibility is particularly useful for underlying complex truths, they are black-box methods where we have limited control over the models' findings and interpretation. Since, generally speaking, bagging methods reduce variance by applying the same algorithm to a bootstrapped sample (sampling with replacement), and boosting can help to reduce bias by weighting weak learners, it is wise to apply both to better pursue the underlying truth. We know due to the bias-variance tradeoff that these characteristics are in tension, and seek to capture the underlying truth by examining both options separately.
+
+# Section 4: Conclusions
+
+Interestingly, the methods are quite successful at classifying testing observations into the correct classes, as evidenced by the ROC curves. Random forests performs very well. Highly flexible methods were useful to accommodate the number of categorical predictors, though the age predictor (numeric), is evidenced as the most important predictor. Oversampling techniques were investigated, and the models 
+
+#Section 5: Bibliography
+1. Boehme, AK, Esenwa, C, & Elkind, MSV. Stroke risk factors, genetics, and prevention. Circulation Research. 2017; Retrieved 3/24/2021, from https://www.ahajournals.org/doi/full/10.1161/CIRCRESAHA.116.308398 
+
+2. Roger VL, Go AS, Lloyd-Jones DM, et al.; American Heart Association Statistics Committee and Stroke Statistics Subcommittee. Heart disease and stroke statistics–2011 update: a report from the American Heart Association. Circulation. 2011; 123:e18–e209. doi: 10.1161/CIR.0b013e3182009701.
+
+3. Howard VJ, Kleindorfer DO, Judd SE, McClure LA, Safford MM, Rhodes JD, Cushman M, Moy CS, Soliman EZ, Kissela BM, Howard G. Disparities in stroke incidence contributing to disparities in stroke mortality. Annals of Neurol. 2011; 69:619–627. doi: 10.1002/ana.22385
+
+4. Giles, MF. Rothwell, PM. 2007. Risk of stroke early after transient ischaemic attack: a systematic review and meta-analysis. Neurology. 6:12, 1063-1072, doi: 10.1016/S1474-4422(07)70274-0. 

@@ -187,6 +187,10 @@ stroke_df_no_na$stroke_labs = factor(
   subtitle = 'Boxplot of grouped distributions, over scatter plot of bmi vs glucose and colored by age',
   caption = 'Notice higher age among those with stroke outcomes, otherwise similar'
 )
+
+stroke_df_no_na = 
+  stroke_df_no_na %>% 
+  select(-stroke_labs)
 ```
 
 Regarding the correlation of predictors, please see the following.
@@ -213,7 +217,6 @@ y = stroke_df_no_na_ROSE$stroke
 ```
 
 ```{r training selection object, include = F, cache = T}
-set.seed(1107)
 trRows <- createDataPartition(stroke_df_no_na_ROSE$stroke,
                               p = .75,
                               list = F)
@@ -229,14 +232,10 @@ ctrl <- trainControl(method = "cv",
 
 ```{r modeling approaches and graphs with rose, include = F, cache = T}
 #no label is ROSE, next will be labeled 2 with ROSE
-set.seed(1107)
-ctrl <- trainControl(method = "cv",
-                     classProbs = TRUE, 
-                     summaryFunction = twoClassSummary)
 #rf
 rf.grid <- expand.grid(mtry = 1:11,
                        splitrule = "gini",
-                       min.node.size = seq(from = 10, to = 100, by = 10))
+                       min.node.size = seq(from = 1, to = 50, by = 5))
 set.seed(1107)
 rf.fit <- train(stroke ~ . , 
                 stroke_df_no_na_ROSE, 
@@ -274,7 +273,7 @@ ridge.fit <- train(stroke ~ . ,
 
 #xgboost
 xgboost.grid <- expand.grid(
-                          nrounds = seq(from = 200, to = 1000, by = 50),
+                          nrounds = seq(from = 1, to = 200, by = 20),
                           eta = c(0.025, 0.05, 0.1, 0.3),
                           max_depth = c(1, 2, 3, 4, 5, 6),
                           gamma = 0,
@@ -346,7 +345,7 @@ ridge.fit.norose <- train(stroke ~ . ,
 
 #xgboost
 xgboost.grid.norose <- expand.grid(
-                          nrounds = seq(from = 200, to = 1000, by = 50),
+                          nrounds = seq(from = 1, to = 200, by = 20),
                           eta = c(0.025, 0.05, 0.1, 0.3),
                           max_depth = c(1, 2, 3, 4, 5, 6),
                           gamma = 0,
@@ -442,7 +441,7 @@ plot(roc.ctree, col = 2, add = TRUE)
 plot(roc.xgboost, col = 3, add = TRUE)
 plot(roc.ridge, col = 4, add = TRUE)
 modelNames <- c("rf","ctree","xgboost","ridge")
-legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)), col = 1:4, lwd = 1)
+legend("bottomright", legend = paste0(modelNames, ": ", round(auc[1:4],3)), col = 1:4, lwd = 1)
 ```
 ```{r roc2 plotting2, echo = F}
 #plot
@@ -451,7 +450,7 @@ plot(roc.ctree.norose, col = 6, add = TRUE)
 plot(roc.xgboost.norose, col = 7, add = TRUE)
 plot(roc.ridge.norose, col = 8, add = TRUE) 
 modelNames2 <- c("rf.norose","ctree.norose","xgboost.norose","ridge.norose")
-legend("bottomright", legend = paste0(modelNames2, ": ", round(auc,3)), col = 1:8, lwd = 1)
+legend("bottomright", legend = paste0(modelNames2, ": ", round(auc[5:8],3)), col = 1:8, lwd = 1)
 ```
 
 Variable importance is computed by permutations, implemented during model training. Focusing on the model with the most successful testing performance (rf), we see age as the most important variable by far, followed by average glucose level, hypertension, bmi, and every married. Having extracted these results from each model, one can see there is variability between model approaches as to the order of variable importance, and the distance between each variable. Even between the RF and the RF trained on the imbalanced data, we see that average glucose level is much more important in the former than the latter.
