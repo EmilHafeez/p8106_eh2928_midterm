@@ -1,5 +1,6 @@
 ---
-title: "P8106 Data Science Homework 2"
+title: "P8106 Data Science 2 Midterm"
+subtitle: 'Predicting Stroke Outcomes and Investigating Oversampling Prediction using Random Forests, Conditional Inference Trees, Ridge Regression, and Gradient Boosting'
 author: "Emil Hafeez, eh2928"
 geometry: "left=2.57cm,right=2.57cm,top=2.57cm,bottom=2.57cm"
 output:
@@ -18,7 +19,6 @@ header-includes:
 - \fancyhead[R]{\thepage}
 - \fancypagestyle{plain}{\pagestyle{fancy}}
 --- 
-
 ```{r libraries, include = F}
 library(caret) 
 library(klaR)
@@ -29,7 +29,6 @@ library(corrplot)
 library(ROSE)
 library(tidyverse)
 ```
-
 ```{r opts chunk, include = F}
 knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 knitr::opts_chunk$set(echo = TRUE)
@@ -42,16 +41,11 @@ options(
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
-
 # Parameters for Report
 Your report should have the following sections (you can add other sections if you want) and should be no more than 3 pages, excluding figures and tables. The total number of figures and tables should not exceed 6.
-
 # Section 1: Introduction
-
 ## Describe your data set. Provide proper motivation for your work.
-This dataset contains 5110 observations, with de-identified individual patients as the unit of analysis. Each patient is characterized by their id, and a set of numerical and factor variables detailing basic demographic and biomedical information, like their gender, age, and average glucose level. The outcome of interest is a binary indicator of stroke. There is no information regarding prior stroke history.
-
-While limited information is provided by the data source, this dataset is thought to consider both ischemic and hemorrhagic types of stroke as stroke outcome. These stroke outcomes are both very severe, and very prevalent; stroke is the leading cause of long-term adult disability and the fifth leading cause of death in the United States \(^{1,2}\). Race-ethnicity is also significantly associated with stroke incidence (though not included in this dataset), thereby making investigation a racial justice concern as well. \(^3\). As such a major source of disease, stroke is also quite expensive, estimated at about $34 billion per year due to healthcare services and missed work. As with many illnesses, earlier intervention in potential stroke patients improves outcomes. Were stroke outcomes to be predicted from a small set of predictors set as those available, it may be feasible to provide earlier intervention and preventative care, in order to avert these racial and political economic challenges. 
+This dataset contains 5110 observations, with de-identified individual patients as the unit of analysis. Each patient is characterized by their ID, and a set of numerical and factor variables detailing basic demographic and biomedical information, like their gender, age, and average glucose level. The outcome of interest is a binary indicator of stroke. There is no information regarding prior stroke history. While limited information is provided by the data source, this dataset is thought to consider both ischemic and hemorrhagic types of stroke as stroke outcome. These stroke outcomes are both very severe, and very prevalent; stroke is the leading cause of long-term adult disability and the fifth leading cause of death in the United States \(^{1,2}\). Race-ethnicity is also significantly associated with stroke incidence (though not included in this dataset), thereby making investigation a racial justice concern as well. \(^3\). As such a major source of disease, stroke is also quite expensive, estimated at about $34 billion per year due to healthcare services and missed work. As with many illnesses, earlier intervention in potential stroke patients improves outcomes. Were stroke outcomes to be predicted from a small set of predictors set as those available, it may be feasible to provide earlier intervention and preventative care, in order to avert these racial and political economic challenges. 
 
 ```{r start clean, include = F, message = F}
 stroke_df = read_csv("./data/healthcare-dataset-stroke-data.csv", na = "N/A")
@@ -95,19 +89,12 @@ stroke_df_no_na =
 summary(stroke_df)
 ```
 ## What questions are you trying to answer?
-
-This is a public health example; the current study examines whether a moderately effectively prediction of stroke outcome (as a binary classification) can be made using a relatively low-dimensional dataset with a minimal set of predictors, which are largely demographic and noninvasive. This makes for a classification question. This is in the service of another question: to what extent can such a dataset be thought of as a decision support system for medical practitioners, and/or serve towards an early-screening tool for stroke prevention and resource allocation (focusing on special precautions for those at-risk). Ideally, some insight into which of the factors are most relevant for predicting this outcome could be helpful too. 
-
-
+This is a public health example; the current study examines whether a moderately effective prediction of stroke outcome (as a binary classification) can be made using a minimal set of predictors, which are largely demographic and noninvasive. This makes for a classification question, in the service of another question: to what extent can such a dataset be thought of as a decision support system for medical practitioners, and/or serve towards an early-screening tool for stroke prevention and resource allocation (focusing on special precautions for those at-risk). Ideally, some insight into which of the factors are most relevant for predicting this outcome could be helpful too. 
 ## How did you prepare and clean the data?
-The data required several preparation and cleaning steps. Essentially, after importing the data, variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. All variables were investigated for abnormal values and uncommon responses, as well as missing data. The BMI variable was missing 201 observations, which were assumed to be due to a missing-at-random and thus omitted. Categorical variables were also subject to some technical adjustments in order to allow usage in prediction algorithms. The caret package was used to create testing and training partitions, and some objects (such as a predictor matrix) were created for modeling purposes, as well as any necessary transformations (e.g. centering and scaling).
-
+Variables were transmuted into more appropriate data types for analysis (for example, character variables into factor variables). Then, the whole dataset was analyzed for missing data, and tidyverse "data tidying" best practices were implemented to rename and reorder variables. All variables were investigated for abnormal values and uncommon responses, as well as missing data. The BMI variable was missing 201 observations, which were assumed to be due to a missing-at-random and thus omitted. The smoking has "unidentified" values that could be treated as missing but are not here (without more information from data collection process). Categorical variables were also subject to some technical adjustments in order to allow usage in prediction algorithms. The caret package was used to create testing and training partitions, and some objects (such as a predictor matrix) were created for modeling purposes, as well as any necessary transformations (e.g. centering and scaling).
 # Section 2: Exploratory analysis/visualization
-
 ## Is there any interesting structure present in the data?
-
-Data summaries, pair-wise visualizations (boxplots between groups), grouped visualizations (scatter plots with continuous variables and groups), and correlation plots were used. There are many categorical variables, as well as a few nominal and ordinal variables; this presents several challenges for modeling and is a key feature of the data. Other than the missing BMI observations, it is also notable that of the 5110 original observations, only 1 marked "Other" for their gender, which limits the variability modeling can leverage in that regard. 
-
+Data summaries, pair-wise visualizations (boxplots between groups), grouped visualizations (scatter plots with continuous variables and groups), and correlation plots were used. There are many categorical variables, as well as a few nominal and ordinal variables; this presents several challenges for modeling and is a key feature of the data. Other than the missing BMI observations, it is also notable that of the 5110 original observations, only 1 marked "Other" for their gender, which limits the variability modeling can leverage in that regard. Notice also that the dataset is substantially unbalanced (249 strokes versus 4860 no strokes, before missing data removal). Therefore, this analysis also uses the ROSE package to oversample the dataset; model tuning and training is conducted on both the cleaned oversampled dataset and the imbalanced dataset, and the models are compared.
 ```{r visualization, include = F}
 #histograms
 p2 = 
@@ -187,15 +174,24 @@ stroke_df_no_na =
 x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
 #vector of response
 y = stroke_df_no_na$stroke
-
 corrplot(cor(x), method = "square", type = "upper")
 ```
 ## What were your findings?
+It is clear from EDA that average glucose level is not normally distributed, exhibiting a bell-like curve near 100 units, but also a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity). To get a sense of the data, see below. Notice the higher ages of those with stroke outcomes in this plot, as well as the distribution of bmi and glucose level (including some extreme values).
+```{r included plot 1, echo = F}
+stroke_df_no_na$stroke_labs = factor(stroke_df_no_na$stroke)
+stroke_df_no_na$stroke_labs = factor(
+                                      stroke_df_no_na$stroke, 
+                                      levels = c("X0", "X1"), 
+                                      labels = c("No Stroke", "Stroke"))
 
-It is clear from EDA that average glucose level is not normally distributed, exhibiting a bell-like curve near 100 units, but also a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity).
-
+(p5 + p7 + p6) | (p9) + plot_annotation(
+  title = 'Figure 1: age, glucose, bmi, and stroke outcomes',
+  subtitle = 'boxplots and scatterplots',
+  caption = 'Notice the relative similarity of age, gender, and glucose level between genders, but much higher age among those with stroke outcomes'
+)
+```
 # Section 3: Models (Biggest section!!)
-
 ```{r address imbalance, include=F}
 stroke_df_no_na_ROSE = ROSE(
                             stroke ~ . , 
@@ -204,7 +200,6 @@ stroke_df_no_na_ROSE = ROSE(
                             seed = 1107
                             )$data
 ```
-
 ```{r, include = F}
 # matrix of predictors
 x = model.matrix(stroke ~ ., stroke_df_no_na_ROSE)[,-1]
@@ -371,24 +366,23 @@ ggplot(ctree.fit.norose, highlight = TRUE)
 ggplot(ridge.fit.norose, highlight = TRUE)
 ggplot(xgboost.fit.norose, highlight = TRUE)
 ```
-
-
-
 ## What predictor variables did you include?
-
-All variables from the dataset are included in modeling other than the arbitrary numeric identifier. The dataset is not high dimensional, and no variable selection procedures prior to modeling were implemented. Rather than reducing the dimensionality due to a large number of predictor variables, this analysis was primarily affected by the large quantity of categorical variables in the predictor set, since this limited the algorithms which could be applied to the training data.
-
+All variables from the dataset are included in modeling other than the arbitrary numeric identifier. No variable selection procedures prior to modeling were implemented.
 ## What technique did you use? What assumptions, if any, are being made by using this technique?
-
-This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, and gradient boosting (and adaboost). These methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors. Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF). Gradient boosting and AdaBoost are used to address the limits of bagging, using weak classifiers and weighting to find best fits and combine classifiers, assuming that observations are independent, and sometimes assumptions about the interaction depth (though this is tuned here).
-
+This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, ridge regression, and xgboost (gradient boosting). Several of these methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors (though ridge regression makes the same assumptions are MLR: linearity, constant variance, and independence). Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF). Gradient boosting are used to address the limits of bagging, using weak classifiers and weighting to find best fits and combine classifiers, assuming that observations are independent, and sometimes assumptions about the interaction depth (though this is tuned here).
 ## If there were tuning parameters, how did you pick their values?
-
-Tuning parameters include the minimum node size in the random forest algorithm and the minimum criterion in the conditional inference trees; the gradient boosting algorithm and the Adaptive Boosting version tunes the number of trees, interaction dept, shrinkage, and the minimum number of observations in each node. These were tuned using cross-validation, using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more granular steps.
+All models have tuning parameters, and xgboost in particular has many of them. These were tuned using cross-validation, initially using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more density. A visualization of the random forest tuning can be seen here:
+```{r}
+ggplot(rf.fit, highlight = TRUE) +
+  labs(
+    title = "Fig. #####: Random Forests Tuning",
+    x = "Number of Randomly Selected Predictors",
+    y = "ROC (via Cross-Validation)",
+    caption = "This random forest tuning grid explors minimal node size from 10 to 100, with 1 to 11 randomly selected predictors, using Gini index split rules")
+```
 
 ## Discuss the training/test performance if you have a test data set.
-Comment on the below.
-Regarding the training data performance,
+Regarding the training data performance, the random forests algorithm tuned on the oversampled data performs the highest by a relatively wide margin. All methods have ROC between 0.80 and 0.95. Overall, the more flexible and nonparametric methods perform very well. Of 8 models total (4 trained on imbalanced and 4 on ROSEd data): 3 of the top 4 were trained on the oversampled data. 
 ```{r modeling 3 comparison, include = F}
 res <- resamples(list(
                       rf = rf.fit,
@@ -497,4 +491,4 @@ WHICH OF THE EDA PLOTS TO KEEP IN THE REPORT?
 --edit for which vars are included
 --short conclusion
 
-                  
+Tuning parameters include the minimum node size in the random forest algorithm and the minimum criterion in the conditional inference trees; the gradient boosting algorithm tunes the learning rate, tree depth, and the number of rounds. 
