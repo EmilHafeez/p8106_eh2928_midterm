@@ -199,7 +199,7 @@ x = model.matrix(stroke ~ ., stroke_df_no_na)[,-1]
 y = stroke_df_no_na$stroke
 corrplot(cor(x), method = "square", type = "upper")
 ```
-It is clear from EDA that average glucose level is not normally distributed, with a heavy right tail. BMI appears bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. Regarding correlation, there is a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (and denote some collinearity among predictors, as anticipated). See below before a `patchwork` plot of some predictor distributions; notice the higher ages of those with stroke outcomes in this plot, as well as the distribution of bmi and glucose level (including some extreme values). The correlation plot is also printed.
+It is clear from EDA that average glucose level is not normally distributed, with a heavy right tail. BMI appears bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. Regarding correlation, there is a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (and denote some collinearity among predictors, as anticipated). See below before a `patchwork` plot of some predictor distributions; notice the higher ages of those with stroke outcomes in this plot, as well as the distribution of bmi and glucose level (including some extreme values). The correlation plot is not printed for the sake of brevity.
 
 ```{r plottingincludeds, fig.align='center', fig.width=6, echo = F, cache = T}
 stroke_df_no_na$stroke_labs = factor(stroke_df_no_na$stroke)
@@ -217,11 +217,6 @@ stroke_df_no_na$stroke_labs = factor(
 stroke_df_no_na = 
   stroke_df_no_na %>% 
   select(-stroke_labs)
-```
-
-Regarding the correlation of predictors, please see the following.
-```{r corrplot, fig.align='center', fig.width=6, echo = F, cache = T}
-corrplot(cor(x), method = "square", type = "upper")
 ```
 
 # Section 3: Modeling
