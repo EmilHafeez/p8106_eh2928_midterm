@@ -1,9 +1,7 @@
 ---
-title: "Predicting Stroke Outcomes and Investigating Oversampling Prediction using Random Forests, Conditional Inference Trees, Ridge Regression, and Gradient Boosting"
+title: "Predicting Stroke Outcomes and Comparing Imbalanced versus Oversampled Dataset Training using Random Forests, Conditional Inference Trees, Ridge Regression, and Gradient Boosting"
 subtitle: 'P8106 Data Science 2 Midterm'
-author: 
-  -"Emil Hafeez, eh2928"
-  -"eh2928"
+author: "Emil Hafeez, eh2928"
 geometry: "left=1.57cm,right=1.57cm,top=1.57cm,bottom=1.57cm"
 output:
   pdf_document:
@@ -21,7 +19,7 @@ header-includes:
 - \fancyhead[R]{\thepage}
 - \fancypagestyle{plain}{\pagestyle{fancy}}
 --- 
-```{r libraries, include = F}
+```{r libraries, include = F, cache = T}
 library(caret) 
 library(klaR)
 library(ggplot2)
@@ -32,7 +30,7 @@ library(ROSE)
 library(tidyverse)
 ```
 
-```{r opts chunk, include = F}
+```{r opts chunk, include = F, cache = T}
 knitr::opts_chunk$set(echo = TRUE)
 
 options(
@@ -175,7 +173,7 @@ corrplot(cor(x), method = "square", type = "upper")
 ```
 It is clear from EDA that average glucose level is not normally distributed, with a heavy right tail with more density around 200 units before reducing again. BMI is bell-shaped though has several high outliers. There is a range of ages in the dataset including high counts from 40 to 60 years old, and a spike near 80 years old. Genders appear approximately equal distributed in age. Interestingly, average glucose level appears approximately the same across the outcome groups (no stroke, and stroke), though the stroke group appears significantly older than the no-stroke group. No correlations between variables are particularly remarkable, other than a moderate positive association between age and having been ever married, and moderate negative association between private employment and self-employment (both of which are transparent, and denote some collinearity). To get a sense of the data, see below. Notice the higher ages of those with stroke outcomes in this plot, as well as the distribution of bmi and glucose level (including some extreme values). The correlation plot is also printed.
 
-```{r plottingincludeds, fig.align='center', fig.width=6, echo = F}
+```{r plottingincludeds, fig.align='center', fig.width=6, echo = F, cache = T}
 stroke_df_no_na$stroke_labs = factor(stroke_df_no_na$stroke)
 stroke_df_no_na$stroke_labs = factor(
                                       stroke_df_no_na$stroke, 
@@ -194,12 +192,12 @@ stroke_df_no_na =
 ```
 
 Regarding the correlation of predictors, please see the following.
-```{r corrplot, fig.align='center', fig.width=6, echo = F}
+```{r corrplot, fig.align='center', fig.width=6, echo = F, cache = T}
 corrplot(cor(x), method = "square", type = "upper")
 ```
 
 # Section 3: Models
-```{r address imbalance, include=F, cache = T}
+```{r address imbalance, include=F, cache = T, cache = T}
 set.seed(1107)
 stroke_df_no_na_ROSE = ROSE(
                             stroke ~ . , 
@@ -209,7 +207,7 @@ stroke_df_no_na_ROSE = ROSE(
                             )$data
 ```
 
-```{r, include = F}
+```{r, include = F, cache = T}
 # matrix of predictors
 x = model.matrix(stroke ~ ., stroke_df_no_na_ROSE)[,-1]
 #vector of response
@@ -374,16 +372,16 @@ All variables from the dataset are included in modeling other than the arbitrary
 This application focuses on tree-based methods and ensemble methods, given the predictor space. Specifically, techniques used include random forests, conditional inference trees, ridge regression, and xgboost (gradient boosting). Several of these methods are utilized because they have few distributional assumptions and are adaptable to our categorical predictors (though ridge regression makes the same assumptions are MLR: linearity, constant variance, and independence). Random forests makes no formal distributional assumptions, and are non-parametric. Conditional inference trees are closely related to decision trees, but uses a significance test to select inputs rather than maximizing an information measure (like the Gini coefficient used in our RF). Gradient boosting are used to address the limits of bagging, using weak classifiers and weighting to find best fits and combine classifiers, assuming that observations are independent, and sometimes assumptions about the interaction depth (though this is tuned here).
 
 All models have tuning parameters, and xgboost in particular has many of them. These were tuned using cross-validation, initially using a wider range and coarser search pattern; after locating approximate ranges for the selected parameters, I then iterated the search pattern within a narrower ranger and with more density. A visualization of the random forest tuning can be seen here:
-```{r, fig.align='center', fig.width=6, echo = F, warning = F}
+```{r, fig.align='center', fig.width=6, echo = F, warning = F, cache = T}
 ggplot(rf.fit, highlight = TRUE) +
   labs(
     title = "Random Forests Tuning",
     x = "Number of Randomly Selected Predictors",
     y = "ROC (via Cross-Validation)",
-    caption = "Tuning grid explores minimal node size and randomly selected predictors using Gini index split rules")
+    caption = "Minimal node size vs randomly selected predictors using Gini split rules")
 ```
 Regarding the training data performance, the random forests algorithm tuned on the oversampled data performs the highest by a relatively wide margin. All methods have ROC between 0.80 and 0.95. Overall, the more flexible and nonparametric methods perform very well. Of 8 models total (4 trained on imbalanced and 4 on ROSEd data): 3 of the top 4 were trained on the oversampled data. Training ROC performance is visualized below.
-```{r modeling 3 comparison, include = F}
+```{r modeling 3 comparison, cache = T, include = F}
 res <- resamples(list(
                       rf = rf.fit,
                       ctree = ctree.fit,
@@ -399,8 +397,14 @@ summary(res)
 
 bwplot(res, metric = "ROC")
 ```
-Testing data performance can be seen below, split into 2 plots to accomodate the maximum of plot.roc(). 
-```{r modeling 4 test performance, include = F}
+
+```{r bwplot, echo = T, cache=T}
+bwplot(res, metric = "ROC")
+```
+
+Testing data performance can be seen below, split into 2 plots to accommodate the maximum of plot.roc(). 
+
+```{r modeling 4 test performance, include = F, cache = T}
 rf.pred <- predict(rf.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 ctree.pred <- predict(ctree.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
 xgboost.pred <- predict(xgboost.fit, newdata = stroke_df_no_na_ROSE[-trRows,], type = "prob")[,1]
@@ -434,6 +438,7 @@ auc <- c(roc.rf$auc[1],
 auc2 = cbind(auc, c("rf","ctree","xgboost","ridge","rf.norose","ctree.norose","xgboost.norose","ridge.norose"))
 ```
 By order of AUC, the performance is: random forest, xgboost no ROSE, xgboost, ridge no ROSE, conditional inference tree, ridge regression, ctree no ROSE, random forest no ROSE. Interestingly, these models are quite close, and there is no clear preference for training on the imbalanced data (contrary to expectation, since training the model on the ROSE data could have been expected to perform when predicting with a new observation). 
+
 ```{r roc plotting, echo = F}
 #plot 1
 plot(roc.rf, col = 1, legacy.axes = TRUE)
@@ -443,8 +448,9 @@ plot(roc.ridge, col = 4, add = TRUE)
 modelNames <- c("rf","ctree","xgboost","ridge")
 legend("bottomright", legend = paste0(modelNames, ": ", round(auc[1:4],3)), col = 1:4, lwd = 1)
 ```
-```{r roc2 plotting2, echo = F}
-#plot
+
+```{r roc2 plotting2, echo = F} 
+#plot 
 plot(roc.rf.norose, col = 5, legacy.axes = TRUE, add = F)
 plot(roc.ctree.norose, col = 6, add = TRUE)
 plot(roc.xgboost.norose, col = 7, add = TRUE)
@@ -454,6 +460,7 @@ legend("bottomright", legend = paste0(modelNames2, ": ", round(auc[5:8],3)), col
 ```
 
 Variable importance is computed by permutations, implemented during model training. Focusing on the model with the most successful testing performance (rf), we see age as the most important variable by far, followed by average glucose level, hypertension, bmi, and every married. Having extracted these results from each model, one can see there is variability between model approaches as to the order of variable importance, and the distance between each variable. Even between the RF and the RF trained on the imbalanced data, we see that average glucose level is much more important in the former than the latter.
+
 ```{r var imp, include = F, cache = T}
 ## add variable importance 
 varImp(rf.fit)
@@ -467,11 +474,12 @@ varImp(ridge.fit.norose)
 
 All of these methods (other than perhaps ride regression) are limited in their interpretability; while their flexibility is particularly useful for underlying complex truths, they are black-box methods where we have limited control over the models' findings and interpretation. Since, generally speaking, bagging methods reduce variance by applying the same algorithm to a bootstrapped sample (sampling with replacement), and boosting can help to reduce bias by weighting weak learners, it is wise to apply both to better pursue the underlying truth. We know due to the bias-variance tradeoff that these characteristics are in tension, and seek to capture the underlying truth by examining both options separately.
 
-# Section 4: Conclusions
+# Section 4: Conclusion
 
-Interestingly, the methods are quite successful at classifying testing observations into the correct classes, as evidenced by the ROC curves. Random forests performs very well. Highly flexible methods were useful to accommodate the number of categorical predictors, though the age predictor (numeric), is evidenced as the most important predictor. Oversampling techniques were investigated, and the models 
+Interestingly enough, all of the methods trained on the oversampled dataset have a higher area under the curve using the test data than their counterparts (using the same tuning parameters) trained on the imbalanced dataset. This is perhaps counterintuitive given that training on the oversampled dataset could be expected to perform worse with a new observation (eg, in the test data). Overall, the methods are quite successful at classifying testing observations into the correct classes, as evidenced by the ROC curves. This suggests using such a simple dataset may be helpful in clinical decision support, or even have proactive utility.
 
-#Section 5: Bibliography
+# Section 5: Bibliography
+
 1. Boehme, AK, Esenwa, C, & Elkind, MSV. Stroke risk factors, genetics, and prevention. Circulation Research. 2017; Retrieved 3/24/2021, from https://www.ahajournals.org/doi/full/10.1161/CIRCRESAHA.116.308398 
 
 2. Roger VL, Go AS, Lloyd-Jones DM, et al.; American Heart Association Statistics Committee and Stroke Statistics Subcommittee. Heart disease and stroke statistics–2011 update: a report from the American Heart Association. Circulation. 2011; 123:e18–e209. doi: 10.1161/CIR.0b013e3182009701.
