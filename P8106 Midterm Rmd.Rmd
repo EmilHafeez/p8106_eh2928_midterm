@@ -277,7 +277,7 @@ ctree.fit <- train(stroke ~ . ,
                    stroke_df_no_na_ROSE, 
                    subset = trRows,
                    method = "ctree",
-                   tuneGrid = data.frame(mincriterion = seq(0, 1, length = 10)),
+                   tuneGrid = data.frame(mincriterion = seq(0, 1, length = 100)),
                    metric = "ROC",
                    trControl = ctrl)
 
@@ -299,7 +299,7 @@ ridge.fit <- train(stroke ~ . ,
 
 #xgboost
 xgboost.grid <- expand.grid(
-                          nrounds = seq(from = 1, to = 200, by = 20),
+                          nrounds = seq(from = 1, to = 300, by = 10),
                           eta = c(0.025, 0.05, 0.1, 0.3),
                           max_depth = c(1, 2, 3, 4, 5, 6),
                           gamma = 0,
@@ -349,7 +349,7 @@ ctree.fit.norose <- train(stroke ~ . ,
                    stroke_df_no_na, 
                    subset = trRows,
                    method = "ctree",
-                   tuneGrid = data.frame(mincriterion = seq(0, 1, length = 10)),
+                   tuneGrid = data.frame(mincriterion = seq(0, 1, length = 100)),
                    metric = "ROC",
                    trControl = ctrl)
 
@@ -371,7 +371,7 @@ ridge.fit.norose <- train(stroke ~ . ,
 
 #xgboost
 xgboost.grid.norose <- expand.grid(
-                          nrounds = seq(from = 1, to = 200, by = 20),
+                          nrounds = seq(from = 1, to = 300, by = 10),
                           eta = c(0.025, 0.05, 0.1, 0.3),
                           max_depth = c(1, 2, 3, 4, 5, 6),
                           gamma = 0,
@@ -465,7 +465,7 @@ auc <- c(roc.rf$auc[1],
 
 auc2 = cbind(auc, c("rf","ctree","xgboost","ridge","rf.norose","ctree.norose","xgboost.norose","ridge.norose"))
 ```
-By order of AUC in the ROC curves (where "on no oversampling" is using the original imbalanced data), the test data performance is: random forest, xgboost, xgboost on no oversampling, conditional inference tree, ridge regression, ridge on no oversamplingm, random forest on no oversampling, conditional inference tree on on no oversampling. 
+By order of AUC in the ROC curves (where "on no oversampling" is using the original imbalanced data), the test data performance is: random forest, xgboost, xgboost on no oversampling, ridge regression, conditional inference trees, ridge on no oversampling, random forest on no oversampling, conditional inference tree on on no oversampling. 
 
 Interestingly, these models are quite close, and there is no clear preference for training on the imbalanced data (contrary to expectation, since training the model on the ROSE data could have been expected to perform when predicting with a new observation). 
 
@@ -489,7 +489,7 @@ modelNames2 <- c("rf.norose","ctree.norose","xgboost.norose","ridge.norose")
 legend("bottomright", legend = paste0(modelNames2, ": ", round(auc[5:8],3)), col = 5:8, lwd = 5)
 ```
 
-Variable importance is computed by permutations, implemented during model training. Focusing on the model with the most successful testing performance (rf), we see age as the most important variable by far, followed by average glucose level, hypertension, bmi, and every married. Having extracted these results from each model, one can see there is variability between model approaches as to the order of variable importance, and the distance between each variable. Even between the RF and the RF trained on the imbalanced data, we see that average glucose level is much more important in the former than the latter.
+Variable importance is computed by permutation, implemented during model training. Focusing on the model with the most successful testing performance (RF), we see age as the most important variable by far, followed by average glucose level, hypertension, BMI, and every married. Having extracted the variable importance from each model, one can see there is variability between models as to the order of variable importance, and the margin between each variable. Even between the RF and the RF trained on the imbalanced data, we see that average glucose level is much more important in the former than the latter.
 
 ```{r var imp, include = F, cache = T}
 ## add variable importance 
@@ -502,7 +502,7 @@ varImp(xgboost.fit.norose)
 varImp(ridge.fit.norose)
 ```
 
-All of these methods (other than perhaps ride regression) are limited in their interpretability; while their flexibility is particularly useful for underlying complex truths, they are black-box methods where we have limited control over the models' findings and interpretation. Since, generally speaking, bagging methods reduce variance by applying the same algorithm to a bootstrapped sample (sampling with replacement), and boosting can help to reduce bias by weighting weak learners, it is wise to apply both to better pursue the underlying truth. We know due to the bias-variance tradeoff that these characteristics are in tension, and seek to capture the underlying truth by examining both options separately.
+All of these methods (other than perhaps ridge regression) are very limited in their interpretability; while their flexibility is particularly useful for underlying complex truths, they are black-box methods where we have limited control over the models' findings and interpretation. Since, generally speaking, bagging methods reduce variance by applying the same algorithm to a bootstrapped sample (sampling with replacement), and boosting can help to reduce bias by weighting weak learners, it is wise to apply both to better pursue the underlying truth. We know due to the bias-variance tradeoff that these characteristics are in tension, and seek to capture the underlying truth by examining both options separately. This way we can help attain accurate predictions, though we sacrifice the clinical interpretability of variables in the model.
 
 # Section 4: Conclusion
 
